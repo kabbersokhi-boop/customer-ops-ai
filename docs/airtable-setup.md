@@ -113,3 +113,11 @@ Verify PAT access and the configured table/field contract without printing crede
 make providers
 # or: .venv/bin/python scripts/verify_live_providers.py airtable
 ~~~
+
+For a new or incomplete base, preview the additive schema plan first. Applying it requires the PAT scope `schema.bases:write`; the script never deletes tables, fields, or records.
+
+~~~bash
+.venv/bin/python scripts/bootstrap_airtable.py
+.venv/bin/python scripts/bootstrap_airtable.py --apply
+.venv/bin/python scripts/verify_live_providers.py airtable
+~~~

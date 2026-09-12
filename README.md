@@ -145,7 +145,7 @@ make providers
 
 Current reproducible results:
 
-- 24 automated policy, API, idempotency, provider-failure, and adversarial tests
+- 27 automated policy, API, idempotency, provider-failure, schema-planning, and adversarial tests
 - 11/11 live Docker/PostgreSQL demo checks
 - 300 deterministic synthetic inventory rows after first seed
 - 8/8 credential-free n8n exports validated and imported on n8n 2.38.7; manager briefing executed successfully
@@ -207,6 +207,7 @@ n8n/                       eight business-readable workflow exports
 scripts/
   seed_demo.py             deterministic synthetic data
   run_demo_eval.py         live stack scenario runner
+  bootstrap_airtable.py    dry-run-first additive CRM schema setup
   secret_scan.py           value-suppressing source scan
   validate_workflows.py    export structure and credential check
 tests/                     policy, failure, API, and adversarial coverage
