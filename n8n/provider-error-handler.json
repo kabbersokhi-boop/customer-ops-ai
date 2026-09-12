@@ -1,0 +1,13 @@
+{
+  "name":"Customer Ops AI - Provider Error Handler",
+  "id":"coa-provider-errors",
+  "nodes":[
+    {"parameters":{},"id":"err-1","name":"Workflow Error Trigger","type":"n8n-nodes-base.errorTrigger","typeVersion":1,"position":[-420,0]},
+    {"parameters":{"assignments":{"assignments":[{"id":"workflow","name":"failed_workflow","value":"={{ $json.workflow.name }}","type":"string"},{"id":"execution","name":"execution_id","value":"={{ $json.execution.id }}","type":"string"},{"id":"classification","name":"classification","value":"PROVIDER_FAILURE_REVIEW","type":"string"},{"id":"safe","name":"safe_behavior","value":"Preserve domain state; retry mutations only with the same idempotency key.","type":"string"}]},"options":{}},"id":"err-2","name":"Classify Safe Retry","type":"n8n-nodes-base.set","typeVersion":3.4,"position":[-160,0]},
+    {"parameters":{"amount":5,"unit":"seconds"},"id":"err-3","name":"Bounded Backoff","type":"n8n-nodes-base.wait","typeVersion":1.1,"position":[100,0],"webhookId":"provider-retry-wait"},
+    {"parameters":{"assignments":{"assignments":[{"id":"handoff","name":"operator_handoff","value":"Review execution and replay only through an idempotent workflow entrypoint.","type":"string"}]},"options":{}},"id":"err-4","name":"Operations Alert Boundary","type":"n8n-nodes-base.set","typeVersion":3.4,"position":[360,0]}
+  ],
+  "connections":{"Workflow Error Trigger":{"main":[[{"node":"Classify Safe Retry","type":"main","index":0}]]},"Classify Safe Retry":{"main":[[{"node":"Bounded Backoff","type":"main","index":0}]]},"Bounded Backoff":{"main":[[{"node":"Operations Alert Boundary","type":"main","index":0}]]}},
+  "active":false,
+  "settings":{"executionOrder":"v1"}
+}

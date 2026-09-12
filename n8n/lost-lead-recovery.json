@@ -1,0 +1,13 @@
+{
+  "name":"Customer Ops AI - Lost Lead Recovery",
+  "id":"coa-lost-lead-recovery",
+  "nodes":[
+    {"parameters":{"rule":{"interval":[{"field":"hours","hoursInterval":2}]}},"id":"lost-1","name":"Every 2 Hours","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[-470,0]},
+    {"parameters":{"url":"={{ ($env.CUSTOMER_OPS_API_BASE_URL || 'http://api:8000') + '/api/ops/lost-leads?stale_hours=24' }}","options":{"timeout":15000}},"id":"lost-2","name":"Find Stale High Intent Leads","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[-210,0]},
+    {"parameters":{"method":"POST","url":"={{ ($env.CUSTOMER_OPS_API_BASE_URL || 'http://api:8000') + '/api/ops/recover-lead' }}","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({lead_id:$json.id,note:'n8n stale-lead recovery queue'}) }}","options":{"timeout":15000}},"id":"lost-3","name":"Queue Idempotent Recovery","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[50,0]},
+    {"parameters":{"assignments":{"assignments":[{"id":"action","name":"automation_result","value":"Recovery queued. Messaging provider adapter may send the approved follow-up.","type":"string"},{"id":"boundary","name":"provider_boundary","value":"No customer message is sent by this export.","type":"string"}]},"options":{}},"id":"lost-4","name":"Provider Handoff Boundary","type":"n8n-nodes-base.set","typeVersion":3.4,"position":[310,0]}
+  ],
+  "connections":{"Every 2 Hours":{"main":[[{"node":"Find Stale High Intent Leads","type":"main","index":0}]]},"Find Stale High Intent Leads":{"main":[[{"node":"Queue Idempotent Recovery","type":"main","index":0}]]},"Queue Idempotent Recovery":{"main":[[{"node":"Provider Handoff Boundary","type":"main","index":0}]]}},
+  "active":false,
+  "settings":{"executionOrder":"v1"}
+}

@@ -1,0 +1,89 @@
+{
+  "name": "Customer Ops AI - Inbound Channel",
+  "id": "coa-inbound-channel",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "customer-ops/inbound", "responseMode": "responseNode", "options": {}},
+      "id": "1",
+      "name": "Inbound Channel Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-620, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {"assignments": [
+          {"id": "event", "name": "event_id", "value": "={{ $json.body.event_id || ('n8n-' + $now.toMillis()) }}", "type": "string"},
+          {"id": "channel", "name": "channel", "value": "={{ $json.body.channel || 'n8n-webhook' }}", "type": "string"},
+          {"id": "name", "name": "customer_name", "value": "={{ $json.body.customer_name || $json.body.name }}", "type": "string"},
+          {"id": "phone", "name": "customer_phone", "value": "={{ $json.body.customer_phone || $json.body.phone }}", "type": "string"},
+          {"id": "text", "name": "text", "value": "={{ $json.body.text || $json.body.message }}", "type": "string"},
+          {"id": "metadata", "name": "metadata", "value": "={{ {source:'n8n', raw_channel:$json.body.channel || 'unknown'} }}", "type": "object"}
+        ]},
+        "options": {}
+      },
+      "id": "2",
+      "name": "Normalize Channel Event",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-380, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.CUSTOMER_OPS_API_BASE_URL || 'http://api:8000') + '/api/channels/inbound' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {"timeout": 60000}
+      },
+      "id": "3",
+      "name": "AI Operations Control Layer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-120, 0]
+    },
+    {
+      "parameters": {"conditions": {"options": {"caseSensitive": true, "typeValidation": "strict"}, "conditions": [{"leftValue": "={{ $json.lead.score }}", "rightValue": 80, "operator": {"type": "number", "operation": "gte"}}], "combinator": "and"}},
+      "id": "4",
+      "name": "High Intent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [120, 0]
+    },
+    {
+      "parameters": {"assignments": {"assignments": [{"id": "priority", "name": "routing_priority", "value": "HIGH", "type": "string"}, {"id": "action", "name": "next_action", "value": "Sales follow-up / appointment", "type": "string"}]}, "options": {}},
+      "id": "5",
+      "name": "Mark Priority Route",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [360, -100]
+    },
+    {
+      "parameters": {"assignments": {"assignments": [{"id": "priority", "name": "routing_priority", "value": "NORMAL", "type": "string"}]}, "options": {}},
+      "id": "6",
+      "name": "Standard Route",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [360, 100]
+    },
+    {
+      "parameters": {"respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {}},
+      "id": "7",
+      "name": "Return Channel Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [620, 0]
+    }
+  ],
+  "connections": {
+    "Inbound Channel Webhook": {"main": [[{"node": "Normalize Channel Event", "type": "main", "index": 0}]]},
+    "Normalize Channel Event": {"main": [[{"node": "AI Operations Control Layer", "type": "main", "index": 0}]]},
+    "AI Operations Control Layer": {"main": [[{"node": "High Intent?", "type": "main", "index": 0}]]},
+    "High Intent?": {"main": [[{"node": "Mark Priority Route", "type": "main", "index": 0}], [{"node": "Standard Route", "type": "main", "index": 0}]]},
+    "Mark Priority Route": {"main": [[{"node": "Return Channel Response", "type": "main", "index": 0}]]},
+    "Standard Route": {"main": [[{"node": "Return Channel Response", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"}
+}
