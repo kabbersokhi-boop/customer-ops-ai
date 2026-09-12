@@ -24,6 +24,8 @@ flowchart LR
     R --> U
 ~~~
 
+![Operations console showing governed customer operations, approvals, service work, and system state](docs/assets/operations-console.png)
+
 ## Five-minute proof
 
 1. Send the prepared Fortuner enquiry from the console.
