@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: pip install -e '.[dev]'
+      - name: Compile
+        run: python -m compileall -q app scripts tests
+      - name: Lint
+        run: ruff check .
+      - name: Validate workflow exports
+        run: python scripts/validate_workflows.py
+      - name: Scan tracked source for secrets
+        run: python scripts/secret_scan.py
+      - name: Test
+        env:
+          PYTHONPATH: .
+        run: pytest -q
+      - name: Build container
+        run: docker build .
