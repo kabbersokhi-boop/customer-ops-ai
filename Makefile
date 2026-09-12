@@ -22,7 +22,7 @@ workflows:
 	.venv/bin/python scripts/validate_workflows.py
 
 secret-scan:
-	.venv/bin/python scripts/secret_scan.py
+	.venv/bin/python scripts/secret_scan.py --history
 
 eval:
 	.venv/bin/python scripts/run_demo_eval.py

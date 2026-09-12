@@ -1,4 +1,6 @@
+import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -33,7 +35,14 @@ def candidate_files() -> list[Path]:
     return files
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Scan source and optional Git history without printing secret values.")
+    parser.add_argument("--history", action="store_true", help="also scan the full Git patch history")
+    return parser.parse_args()
+
+
 def main() -> int:
+    args = parse_args()
     findings: list[tuple[str, int, str]] = []
     for path in candidate_files():
         try:
@@ -44,12 +53,25 @@ def main() -> int:
             for label, pattern in PATTERNS.items():
                 if pattern.search(line):
                     findings.append((str(path.relative_to(ROOT)), line_number, label))
+    if args.history and (ROOT / ".git").exists():
+        history = subprocess.run(
+            ["git", "log", "--all", "--full-history", "-p", "--no-ext-diff"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        for label, pattern in PATTERNS.items():
+            if pattern.search(history):
+                findings.append(("<git-history>", 0, label))
     if findings:
         print("Potential secrets detected (values suppressed):", file=sys.stderr)
         for path, line_number, label in findings:
-            print(f"- {path}:{line_number}: {label}", file=sys.stderr)
+            location = f"{path}:{line_number}" if line_number else path
+            print(f"- {location}: {label}", file=sys.stderr)
         return 1
-    print(f"Secret scan passed across {len(candidate_files())} text files.")
+    history_note = " and Git history" if args.history else ""
+    print(f"Secret scan passed across {len(candidate_files())} text files{history_note}.")
     return 0
 
 

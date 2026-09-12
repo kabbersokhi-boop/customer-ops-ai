@@ -21,7 +21,7 @@ jobs:
       - name: Validate workflow exports
         run: python scripts/validate_workflows.py
       - name: Scan tracked source for secrets
-        run: python scripts/secret_scan.py
+        run: python scripts/secret_scan.py --history
       - name: Test
         env:
           PYTHONPATH: .
