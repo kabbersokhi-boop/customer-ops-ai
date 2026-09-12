@@ -31,7 +31,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ ($env.CUSTOMER_OPS_API_BASE_URL || 'http://api:8000') + '/api/channels/inbound' }}",
+        "url": "={{ ($vars.CUSTOMER_OPS_API_BASE_URL || 'http://api:8000') + '/api/channels/inbound' }}",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json) }}",

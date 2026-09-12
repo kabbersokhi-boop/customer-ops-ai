@@ -73,6 +73,25 @@ def _safe_sales_reply(lead, inventory: list[dict], dms_available: bool) -> str:
     )
 
 
+def _is_grounded_budget_constraint(content: str, claimed_price: int, inventory: list[dict]) -> bool:
+    if not inventory or any(item["demo_price_inr"] > claimed_price for item in inventory):
+        return False
+
+    price_patterns = [
+        r"(?:₹|rs\.?|inr)?\s*\d+(?:\.\d+)?\s*(?:lakh|lac|lakhs|lacs|l\b)",
+        r"(?:₹|rs\.?|inr)\s*[\d,]+",
+    ]
+    low = content.lower()
+    for pattern in price_patterns:
+        for match in re.finditer(pattern, low, re.I):
+            if extract_budget(match.group(0)) != claimed_price:
+                continue
+            context_before = low[max(0, match.start() - 45) : match.start()]
+            if re.search(r"(?:under|below|up\s*to|upto|within|budget(?:\s+of)?)\s*(?:your\s*)?$", context_before):
+                return True
+    return False
+
+
 def _grounding_guard(
     content: str,
     deterministic_reply: str,
@@ -109,7 +128,11 @@ def _grounding_guard(
             return deterministic_reply, False, "UNVERIFIED_MODEL_CLAIM"
         claimed_price = extract_budget(content)
         verified_prices = {item["demo_price_inr"] for item in inventory}
-        if claimed_price is not None and claimed_price not in verified_prices:
+        if (
+            claimed_price is not None
+            and claimed_price not in verified_prices
+            and not _is_grounded_budget_constraint(content, claimed_price, inventory)
+        ):
             return deterministic_reply, False, "UNVERIFIED_PRICE_CLAIM"
     return content, True, None
 

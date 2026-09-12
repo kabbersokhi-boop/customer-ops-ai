@@ -106,3 +106,10 @@ AIRTABLE_APPROVALS_TABLE=Approval Requests
 Each entity is looked up by its deterministic business ID. Existing rows are patched; missing rows are created. Timeouts, network errors, rate limits, and server errors use a bounded retry policy. The application stores sync status, attempt count, provider record ID, base link, operation, and a non-sensitive error code.
 
 CRM failure never rolls back already committed domain state. Failed rows remain visible in the operations console for controlled replay.
+
+Verify PAT access and the configured table/field contract without printing credentials or records:
+
+~~~bash
+make providers
+# or: .venv/bin/python scripts/verify_live_providers.py airtable
+~~~

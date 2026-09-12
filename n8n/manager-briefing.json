@@ -2,11 +2,12 @@
   "name": "Customer Ops AI - Manager Briefing",
   "id": "coa-manager-briefing",
   "nodes": [
-    {"parameters":{"rule":{"interval":[{"triggerAtHour":9}]}},"id":"1","name":"Daily 9 AM","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[-360,0]},
-    {"parameters":{"url":"={{ ($env.CUSTOMER_OPS_API_BASE_URL || 'http://api:8000') + '/api/ops/briefing' }}","options":{}},"id":"2","name":"Get Grounded Operations Briefing","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[-100,0]},
+    {"parameters":{"rule":{"interval":[{"triggerAtHour":9}]}},"id":"1","name":"Daily 9 AM","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[-360,-100]},
+    {"parameters":{},"id":"5","name":"Called by Workflow","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.1,"position":[-360,100]},
+    {"parameters":{"url":"={{ ($vars.CUSTOMER_OPS_API_BASE_URL || 'http://api:8000') + '/api/ops/briefing' }}","options":{}},"id":"2","name":"Get Grounded Operations Briefing","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[-100,0]},
     {"parameters":{"assignments":{"assignments":[{"id":"title","name":"title","value":"Daily AI Operations Brief","type":"string"},{"id":"attention","name":"attention_items","value":"={{ $json.attention }}","type":"array"},{"id":"metrics","name":"metrics","value":"={{ $json.metrics }}","type":"object"}]},"options":{}},"id":"3","name":"Prepare Manager Payload","type":"n8n-nodes-base.set","typeVersion":3.4,"position":[170,0]},
     {"parameters":{"assignments":{"assignments":[{"id":"boundary","name":"delivery_boundary","value":"Connect Slack, email or WhatsApp Business provider here in production.","type":"string"}]},"options":{}},"id":"4","name":"Manager Delivery Adapter","type":"n8n-nodes-base.set","typeVersion":3.4,"position":[440,0]}
   ],
-  "connections":{"Daily 9 AM":{"main":[[{"node":"Get Grounded Operations Briefing","type":"main","index":0}]]},"Get Grounded Operations Briefing":{"main":[[{"node":"Prepare Manager Payload","type":"main","index":0}]]},"Prepare Manager Payload":{"main":[[{"node":"Manager Delivery Adapter","type":"main","index":0}]]}},
+  "connections":{"Daily 9 AM":{"main":[[{"node":"Get Grounded Operations Briefing","type":"main","index":0}]]},"Called by Workflow":{"main":[[{"node":"Get Grounded Operations Briefing","type":"main","index":0}]]},"Get Grounded Operations Briefing":{"main":[[{"node":"Prepare Manager Payload","type":"main","index":0}]]},"Prepare Manager Payload":{"main":[[{"node":"Manager Delivery Adapter","type":"main","index":0}]]}},
   "active":false,"settings":{"executionOrder":"v1"}
 }

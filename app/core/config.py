@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./customer_ops.db"
     nvidia_nim_api_key: str = ""
     nvidia_nim_base_url: str = "https://integrate.api.nvidia.com/v1"
-    nvidia_nim_model: str = "nvidia/nemotron-3-super-120b-a12b"
+    nvidia_nim_model: str = "z-ai/glm-5.3-flash"
     nvidia_nim_timeout_seconds: float = Field(default=25.0, ge=1, le=120)
     nvidia_nim_max_retries: int = Field(default=2, ge=0, le=5)
     airtable_api_key: str = ""

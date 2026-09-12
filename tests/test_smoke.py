@@ -407,6 +407,37 @@ def test_model_inventory_and_price_invention_is_rejected(monkeypatch):
     assert any(item.get("error") == "UNVERIFIED_MODEL_CLAIM" for item in body["tool_trace"])
 
 
+def test_model_can_repeat_grounded_customer_budget_constraint(monkeypatch):
+    monkeypatch.setattr(settings, "nvidia_nim_api_key", "test-only")
+    provider_call = AsyncMock(
+        return_value={
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            "I found a Fortuner option in the synthetic demo inventory within your ₹45 lakh budget. "
+                            "A test drive is not booked until you select a slot."
+                        )
+                    }
+                }
+            ]
+        }
+    )
+    with patch("app.services.agent.NIMClient.chat", provider_call):
+        body = client.post(
+            "/api/channels/inbound",
+            json={
+                "event_id": "evt-grounded-budget",
+                "channel": "web",
+                "customer_name": "Budget Customer",
+                "customer_phone": "+919999900019",
+                "text": "I want a white Fortuner automatic under 45 lakh.",
+            },
+        ).json()
+    assert body["response_mode"] == "nvidia-nim"
+    assert "₹45 lakh budget" in body["reply"]
+
+
 def test_nonexistent_configuration_does_not_fabricate_match():
     body = client.post(
         "/api/channels/inbound",

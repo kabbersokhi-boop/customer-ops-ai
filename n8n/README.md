@@ -19,10 +19,9 @@ Attach n8n to the Compose network, then use the service name:
 
 ~~~bash
 docker network connect customer-ops-ai_default n8n
-CUSTOMER_OPS_API_BASE_URL=http://api:8000
 ~~~
 
-The exports default to http://api:8000 when the variable is absent.
+Create the n8n Variable `CUSTOMER_OPS_API_BASE_URL` with value `http://api:8000`, or rely on the same built-in Docker-network fallback. The exports use `$vars` because expression access to `$env` is blocked by default in current n8n releases.
 
 If ADMIN_API_KEY is enabled in the API, add an HTTP Header Auth credential in n8n and select it only on manager/admin HTTP Request nodes. Never export the credential.
 
@@ -34,11 +33,11 @@ Use Workflows → Import from File, or the CLI:
 n8n import:workflow --input=/path/to/workflow.json
 ~~~
 
-All eight files have stable workflow IDs and were imported successfully using n8n 2.38.7. They remain inactive after import so provider boundaries cannot send unintended messages.
+All eight files have stable workflow IDs and were imported successfully using n8n 2.38.7. The Manager Briefing workflow was also executed end to end against the Compose API. Workflows remain inactive after import so provider boundaries cannot send unintended messages.
 
 ## Manual steps
 
-1. Configure CUSTOMER_OPS_API_BASE_URL.
+1. Configure the n8n Variable `CUSTOMER_OPS_API_BASE_URL`. The exports fall back to `http://api:8000` for the documented Docker network and do not require expression-level environment access.
 2. Select the optional admin-header credential if admin protection is enabled.
 3. Replace provider-boundary Set nodes with approved Slack, email, WhatsApp Business, or service-desk credentials.
 4. Test each workflow manually before activation.

@@ -1,4 +1,4 @@
-.PHONY: up down seed test lint workflows secret-scan verify eval logs clean
+.PHONY: up down seed test lint workflows secret-scan verify eval providers logs clean
 
 up:
 	docker compose up -d --build
@@ -13,7 +13,7 @@ logs:
 	docker compose logs -f api
 
 test:
-	PYTHONPATH=. .venv/bin/pytest -q
+	PYTHONPATH=. .venv/bin/python -m pytest -q
 
 lint:
 	.venv/bin/ruff check .
@@ -26,6 +26,9 @@ secret-scan:
 
 eval:
 	.venv/bin/python scripts/run_demo_eval.py
+
+providers:
+	.venv/bin/python scripts/verify_live_providers.py
 
 verify: lint workflows secret-scan test
 

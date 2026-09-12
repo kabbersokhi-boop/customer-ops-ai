@@ -36,10 +36,12 @@ The unit/API suite runs against isolated SQLite state. The live demo eval runs t
 
 ## Latest local result
 
-- Automated tests: 23 passed
+- Automated tests: 24 passed
 - Live Docker/PostgreSQL checks: 11/11 passed
 - n8n export validation: 8 passed
 - n8n 2.38.7 CLI import: 8 passed
+- n8n Manager Briefing runtime execution: passed against the live Compose API
+- NVIDIA NIM live tool-call preflight: passed with validated arguments on `z-ai/glm-5.3-flash`
 
 These numbers are regression results, not claims about model accuracy in production. There is no statistically meaningful precision/recall score yet because the repository does not ship a labeled real-customer corpus.
 

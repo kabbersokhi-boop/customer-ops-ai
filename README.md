@@ -90,6 +90,7 @@ Useful commands:
 ~~~bash
 make verify
 make eval
+make providers  # live NIM and Airtable preflight; requires local credentials
 make logs
 make down
 make clean  # destructive: removes the local demo database volume
@@ -113,7 +114,7 @@ All secrets stay in environment variables or a local secret store.
 | AIRTABLE_*_TABLE | No | Configurable table-name mapping |
 | ADMIN_API_KEY | Recommended when deployed | Protects manager/admin mutations |
 
-NIM and Airtable default to safe fallback/mock behavior. The health endpoint reports which mode is active. See [docs/airtable-setup.md](docs/airtable-setup.md) for the exact CRM schema.
+NIM and Airtable default to safe fallback/mock behavior. The health endpoint reports which mode is active. Live NIM chat and inventory tool calling were verified with `z-ai/glm-5.3-flash` through NVIDIA's hosted endpoint; the model remains configurable because hosted catalogs change. See [docs/airtable-setup.md](docs/airtable-setup.md) for the exact CRM schema.
 
 ## n8n orchestration
 
@@ -128,7 +129,7 @@ The n8n directory contains workflows for:
 7. manager briefing,
 8. system-health alerts.
 
-They contain no credentials and keep policy in the control layer rather than Code or Function nodes. All eight exports were CLI-imported successfully into n8n 2.38.7. Setup notes are in [n8n/README.md](n8n/README.md).
+They contain no credentials and keep policy in the control layer rather than Code or Function nodes. All eight exports were CLI-imported successfully into n8n 2.38.7, and the Manager Briefing was executed end to end against the live Compose API. Setup notes are in [n8n/README.md](n8n/README.md).
 
 ## Verification
 
@@ -137,14 +138,15 @@ uv sync --extra dev
 make verify
 docker compose up -d --build
 make eval
+make providers
 ~~~
 
 Current reproducible results:
 
-- 23 automated policy, API, idempotency, provider-failure, and adversarial tests
+- 24 automated policy, API, idempotency, provider-failure, and adversarial tests
 - 11/11 live Docker/PostgreSQL demo checks
 - 300 deterministic synthetic inventory rows after first seed
-- 8/8 credential-free n8n exports validated and imported on n8n 2.38.7
+- 8/8 credential-free n8n exports validated and imported on n8n 2.38.7; manager briefing executed successfully
 
 The evals report actual pass/fail checks; no quality percentage is inferred from this small scenario suite. See [docs/evals.md](docs/evals.md).
 

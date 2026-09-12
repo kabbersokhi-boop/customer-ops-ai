@@ -14,6 +14,9 @@ def main() -> int:
     names: set[str] = set()
     for path in paths:
         workflow = json.loads(path.read_text(encoding="utf-8"))
+        serialized = json.dumps(workflow)
+        if "$env." in serialized:
+            raise SystemExit(f"{path.name}: use n8n Variables ($vars), not blocked expression environment access")
         workflow_id = workflow.get("id")
         name = workflow.get("name")
         nodes = workflow.get("nodes")
