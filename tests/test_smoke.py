@@ -72,6 +72,16 @@ def test_health():
     assert response.json()["status"] == "ok"
 
 
+def test_demo_config_defaults_to_direct_control_layer_routes():
+    response = client.get("/api/demo/config")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["requested_mode"] == "direct"
+    assert body["routes"]["inbound"]["url"] == "/api/channels/inbound"
+    assert body["routes"]["appointment"]["url"] == "/api/appointments"
+    assert "Python control layer" in body["boundary"]
+
+
 def test_lead_intake_extracts_business_context():
     response = client.post(
         "/api/leads/intake",

@@ -28,6 +28,9 @@ flowchart TB
     V --> N
     W --> N
     N --> A
+    A --> N
+    N --> M
+    N --> V
     A --> P
     A --> L
     L --> G
@@ -60,7 +63,7 @@ Airtable is an adapter behind provider-neutral mappings. Customer, lead, activit
 
 ### Orchestration boundary
 
-n8n normalizes, routes, schedules, retries, and hands off to delivery providers. Core scoring, idempotency, inventory truth, and discount policy stay in tested Python services.
+n8n normalizes, routes, schedules, retries, and hands off to delivery providers. In demo n8n mode, the browser calls published inbound and appointment webhooks and receives the governed FastAPI response back through n8n with an execution trace. Core scoring, NIM access, idempotency, inventory truth, and discount policy stay in tested Python services. Direct FastAPI routing remains the deterministic test/offline fallback.
 
 ## Failure semantics
 

@@ -36,6 +36,7 @@ from app.services.crm import crm_provider_state, sync_appointment, sync_approval
 from app.services.inventory import InventoryUnavailable, search_inventory
 from app.services.leads import intake_lead
 from app.services.ops import find_lost_leads, manager_briefing, operations_summary
+from app.services.orchestration import demo_orchestration_config
 from app.services.service_requests import create_service_request
 
 Base.metadata.create_all(bind=engine)
@@ -79,6 +80,7 @@ def health(db: Session = Depends(get_db)):
             if settings.nvidia_nim_api_key and settings.nvidia_nim_api_key != "replace_me"
             else "mock/fallback",
             "airtable": crm_provider_state(),
+            "orchestration": f"{settings.orchestration_mode}/{demo_orchestration_config()['status']}",
         },
         "system_states": states,
     }
@@ -94,6 +96,11 @@ def readiness(db: Session = Depends(get_db)):
             detail={"code": "DATABASE_UNAVAILABLE", "message": "Database readiness check failed"},
         ) from exc
     return {"status": "ready", "database": "reachable"}
+
+
+@app.get("/api/demo/config")
+def demo_config():
+    return demo_orchestration_config()
 
 
 @app.post("/api/channels/inbound")

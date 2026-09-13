@@ -170,9 +170,9 @@ async def run(selected: Iterable[str]) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify live provider access without printing credentials or records.")
-    parser.add_argument("providers", nargs="*", choices=["nim", "airtable"], default=["nim", "airtable"])
+    parser.add_argument("providers", nargs="*", choices=["nim", "airtable"])
     args = parser.parse_args()
-    return asyncio.run(run(args.providers))
+    return asyncio.run(run(args.providers or ["nim", "airtable"]))
 
 
 if __name__ == "__main__":

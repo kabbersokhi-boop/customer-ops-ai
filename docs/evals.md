@@ -7,9 +7,10 @@ uv sync --extra dev
 make verify
 docker compose up -d --build
 make eval
+make orchestration-eval  # run with published n8n webhooks and ORCHESTRATION_MODE=n8n
 ~~~
 
-The unit/API suite runs against isolated SQLite state. The live demo eval runs through HTTP against the Docker Compose API and PostgreSQL.
+The unit/API suite runs against isolated SQLite state. The live demo eval runs through HTTP against the Docker Compose API and PostgreSQL. The orchestration eval discovers the same runtime route as the browser, executes inbound and appointment replays through n8n, and verifies one durable booking.
 
 ## Covered scenarios
 
@@ -36,12 +37,14 @@ The unit/API suite runs against isolated SQLite state. The live demo eval runs t
 
 ## Latest local result
 
-- Automated tests: 27 passed
+- Automated tests: 32 passed
 - Live Docker/PostgreSQL checks: 11/11 passed
 - n8n export validation: 8 passed
 - n8n 2.38.7 CLI import: 8 passed
 - n8n Manager Briefing runtime execution: passed against the live Compose API
+- n8n-first runtime eval: inbound and appointment webhooks passed with visible execution IDs; duplicate booking count was one
 - NVIDIA NIM live tool-call preflight: passed with validated arguments on `z-ai/glm-5.3-flash`
+- Airtable live replay proof: one Lead row, two Activity rows, and one Appointment row after duplicate commands
 
 These numbers are regression results, not claims about model accuracy in production. There is no statistically meaningful precision/recall score yet because the repository does not ship a labeled real-customer corpus.
 

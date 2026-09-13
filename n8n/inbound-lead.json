@@ -3,12 +3,26 @@
   "id": "coa-inbound-channel",
   "nodes": [
     {
-      "parameters": {"httpMethod": "POST", "path": "customer-ops/inbound", "responseMode": "responseNode", "options": {}},
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "customer-ops/inbound",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"},
+              {"name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS"}
+            ]
+          }
+        }
+      },
       "id": "1",
       "name": "Inbound Channel Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-620, 0]
+      "position": [-620, 0],
+      "webhookId": "154b5984-132b-4f3c-88c7-c5846a34329a"
     },
     {
       "parameters": {
@@ -18,7 +32,7 @@
           {"id": "name", "name": "customer_name", "value": "={{ $json.body.customer_name || $json.body.name }}", "type": "string"},
           {"id": "phone", "name": "customer_phone", "value": "={{ $json.body.customer_phone || $json.body.phone }}", "type": "string"},
           {"id": "text", "name": "text", "value": "={{ $json.body.text || $json.body.message }}", "type": "string"},
-          {"id": "metadata", "name": "metadata", "value": "={{ {source:'n8n', raw_channel:$json.body.channel || 'unknown'} }}", "type": "object"}
+          {"id": "metadata", "name": "metadata", "value": "={{ {...($json.body.metadata || {}), source:'n8n', raw_channel:$json.body.channel || 'unknown'} }}", "type": "object"}
         ]},
         "options": {}
       },
@@ -52,7 +66,15 @@
       "position": [120, 0]
     },
     {
-      "parameters": {"assignments": {"assignments": [{"id": "priority", "name": "routing_priority", "value": "HIGH", "type": "string"}, {"id": "action", "name": "next_action", "value": "Sales follow-up / appointment", "type": "string"}]}, "options": {}},
+      "parameters": {
+        "assignments": {"assignments": [
+          {"id": "priority", "name": "routing_priority", "value": "HIGH", "type": "string"},
+          {"id": "action", "name": "workflow_next_action", "value": "Sales follow-up / appointment", "type": "string"},
+          {"id": "orchestration", "name": "orchestration", "value": "={{ { mode: 'n8n', workflow_id: $workflow.id, workflow_name: $workflow.name, execution_id: $execution.id } }}", "type": "object"}
+        ]},
+        "includeOtherFields": true,
+        "options": {}
+      },
       "id": "5",
       "name": "Mark Priority Route",
       "type": "n8n-nodes-base.set",
@@ -60,7 +82,14 @@
       "position": [360, -100]
     },
     {
-      "parameters": {"assignments": {"assignments": [{"id": "priority", "name": "routing_priority", "value": "NORMAL", "type": "string"}]}, "options": {}},
+      "parameters": {
+        "assignments": {"assignments": [
+          {"id": "priority", "name": "routing_priority", "value": "NORMAL", "type": "string"},
+          {"id": "orchestration", "name": "orchestration", "value": "={{ { mode: 'n8n', workflow_id: $workflow.id, workflow_name: $workflow.name, execution_id: $execution.id } }}", "type": "object"}
+        ]},
+        "includeOtherFields": true,
+        "options": {}
+      },
       "id": "6",
       "name": "Standard Route",
       "type": "n8n-nodes-base.set",

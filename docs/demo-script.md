@@ -6,11 +6,13 @@ Say:
 
 > This is a customer-operations control layer, not a chatbot. The tenant and inventory are synthetic. PostgreSQL owns operational truth, Airtable is a CRM projection, n8n is orchestration, and NVIDIA NIM is a bounded reasoning provider.
 
-Point to provider badges and the manager exception summary.
+Point to provider badges, the green `Primary route: n8n orchestration` card, and the manager exception summary. Keep the n8n Executions page open in another tab.
 
 ## 0:25–1:20 — Sales enquiry
 
 Send the prepared Fortuner message.
+
+Immediately open the execution link returned inside the channel card. Show the new Inbound Channel execution and its `AI Operations Control Layer` HTTP node.
 
 Show:
 
@@ -21,6 +23,7 @@ Show:
 - CRM sync status,
 - response mode and tool trace,
 - next action and audit event.
+- n8n workflow ID and execution ID in the model/tool trace.
 
 Say:
 
@@ -28,9 +31,9 @@ Say:
 
 ## 1:20–1:55 — Appointment replay
 
-Create the test drive, then click Replay same command.
+Create the test drive, open its n8n execution, then click Replay same command.
 
-Show that the same appointment ID returns with replayed status and only one row exists.
+Show that two n8n executions return the same appointment ID, with replayed status and only one durable row.
 
 Say:
 

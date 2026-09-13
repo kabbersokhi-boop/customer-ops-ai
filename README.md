@@ -20,6 +20,8 @@ flowchart LR
     A --> R[Airtable CRM upserts]
     A --> P[Typed bookings + approvals]
     P --> U[Operations console + audit]
+    A --> N
+    N --> C
     D --> U
     R --> U
 ~~~
@@ -28,8 +30,8 @@ flowchart LR
 
 ## Five-minute proof
 
-1. Send the prepared Fortuner enquiry from the console.
-2. Inspect model, budget, colour, transmission, timeline, trade-in, score, inventory result, CRM status, reply mode, tool trace, audit event, and next action.
+1. Send the prepared Fortuner enquiry from the console and open the linked n8n execution created by that click.
+2. Inspect model, budget, colour, transmission, timeline, trade-in, score, verified inventory, CRM status, reply mode, tool trace, audit event, and next action.
 3. Create a test drive, replay the identical command, and show that one appointment exists.
 4. Request a ₹50,000 discount and show that the assistant stops at a pending manager approval.
 5. Disable the synthetic DMS, ask for stock, and show explicit safe fallback with no fabricated availability.
@@ -72,7 +74,7 @@ The model receives no database connection and no unrestricted mutation tool. Too
 Requirements: Docker with Compose, or Python 3.11+ with uv.
 
 ~~~bash
-git clone <repository-url>
+git clone https://github.com/kabbersokhi-boop/customer-ops-ai.git
 cd customer-ops-ai
 cp .env.example .env
 docker compose up -d --build
@@ -92,6 +94,7 @@ Useful commands:
 ~~~bash
 make verify
 make eval
+make orchestration-eval  # requires published local n8n webhooks and n8n mode
 make providers  # live NIM and Airtable preflight; requires local credentials
 make logs
 make down
@@ -114,6 +117,11 @@ All secrets stay in environment variables or a local secret store.
 | AIRTABLE_BASE_ID | For live CRM | CRM base |
 | AIRTABLE_ENABLED | For live CRM | Explicit live-write switch |
 | AIRTABLE_*_TABLE | No | Configurable table-name mapping |
+| ORCHESTRATION_MODE | No | `direct` fallback or browser-to-n8n demo route |
+| N8N_INBOUND_WEBHOOK_URL | For n8n mode | Published inbound production webhook URL |
+| N8N_APPOINTMENT_WEBHOOK_URL | For n8n mode | Published appointment production webhook URL |
+| N8N_UI_BASE_URL | No | Enables console links to individual n8n executions |
+| CUSTOMER_OPS_EVAL_TIMEOUT_SECONDS | No | Live eval client timeout; must exceed bounded provider retries |
 | ADMIN_API_KEY | Recommended when deployed | Protects manager/admin mutations |
 
 NIM and Airtable default to safe fallback/mock behavior. The health endpoint reports which mode is active. Live NIM chat and inventory tool calling were verified with `z-ai/glm-5.3-flash` through NVIDIA's hosted endpoint; the model remains configurable because hosted catalogs change. See [docs/airtable-setup.md](docs/airtable-setup.md) for the exact CRM schema.
@@ -131,7 +139,7 @@ The n8n directory contains workflows for:
 7. manager briefing,
 8. system-health alerts.
 
-They contain no credentials and keep policy in the control layer rather than Code or Function nodes. All eight exports were CLI-imported successfully into n8n 2.38.7, and the Manager Briefing was executed end to end against the live Compose API. Setup notes are in [n8n/README.md](n8n/README.md).
+They contain no credentials and keep policy in the control layer rather than Code or Function nodes. In `n8n` mode, the browser posts messaging and appointment commands to published n8n webhooks; n8n calls FastAPI and returns the governed response with a workflow/execution trace. Missing or rejected webhook URLs degrade per route to direct FastAPI. All eight exports were CLI-imported successfully into n8n 2.38.7. Setup notes are in [n8n/README.md](n8n/README.md).
 
 ## Verification
 
@@ -140,13 +148,16 @@ uv sync --extra dev
 make verify
 docker compose up -d --build
 make eval
+make orchestration-eval
 make providers
 ~~~
 
 Current reproducible results:
 
-- 27 automated policy, API, idempotency, provider-failure, schema-planning, and adversarial tests
+- 32 automated policy, API, orchestration, idempotency, provider-failure, schema-planning, and adversarial tests
 - 11/11 live Docker/PostgreSQL demo checks
+- Live n8n-first inbound replay and appointment replay eval, with visible execution IDs and one durable booking
+- Live Airtable replay proof: one Lead, two original Activities, and one Appointment after duplicate commands
 - 300 deterministic synthetic inventory rows after first seed
 - 8/8 credential-free n8n exports validated and imported on n8n 2.38.7; manager briefing executed successfully
 
@@ -207,6 +218,7 @@ n8n/                       eight business-readable workflow exports
 scripts/
   seed_demo.py             deterministic synthetic data
   run_demo_eval.py         live stack scenario runner
+  run_orchestration_eval.py live n8n-first route and replay runner
   bootstrap_airtable.py    dry-run-first additive CRM schema setup
   secret_scan.py           value-suppressing source scan
   validate_workflows.py    export structure and credential check

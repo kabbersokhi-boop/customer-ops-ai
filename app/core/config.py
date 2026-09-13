@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,6 +23,10 @@ class Settings(BaseSettings):
     airtable_activities_table: str = "Activities"
     airtable_appointments_table: str = "Appointments"
     airtable_approvals_table: str = "Approval Requests"
+    orchestration_mode: Literal["direct", "n8n"] = "direct"
+    n8n_inbound_webhook_url: str = ""
+    n8n_appointment_webhook_url: str = ""
+    n8n_ui_base_url: str = ""
     admin_api_key: str = ""
     app_env: str = "development"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

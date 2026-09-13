@@ -7,12 +7,13 @@ from datetime import UTC, datetime, timedelta
 import httpx
 
 BASE_URL = os.getenv("CUSTOMER_OPS_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+HTTP_TIMEOUT_SECONDS = float(os.getenv("CUSTOMER_OPS_EVAL_TIMEOUT_SECONDS", "120"))
 
 
 class EvalRun:
     def __init__(self) -> None:
         self.checks: list[dict] = []
-        self.client = httpx.Client(base_url=BASE_URL, timeout=30)
+        self.client = httpx.Client(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SECONDS)
         self.run_id = uuid.uuid4().hex[:8]
 
     def check(self, name: str, condition: bool, evidence: str) -> None:

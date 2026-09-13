@@ -33,7 +33,8 @@
 | PII in logs | Request bodies are not logged by application code | Formal redaction and retention |
 | Admin endpoint abuse | Optional admin header | OAuth/OIDC, RBAC, CSRF controls |
 | Workflow replay | Idempotent API boundaries | Signed provider webhooks |
+| Demo webhook abuse | Unsafe credentialized URLs rejected; business mutations remain typed/idempotent | Restrict network access and require signed/header-authenticated production webhooks |
 
 ## Security posture
 
-The local console is intentionally unauthenticated when ADMIN_API_KEY is blank. Do not expose this mode to the public internet. Production deployment needs identity, authorization, transport security, rate limiting, webhook signature verification, centralized audit export, encrypted secrets, and a retention policy.
+The local console and n8n demo webhooks are intentionally unauthenticated on localhost when ADMIN_API_KEY is blank. Do not expose this mode to the public internet. Production deployment needs identity, authorization, transport security, rate limiting, webhook signature verification, centralized audit export, encrypted secrets, and a retention policy.
