@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.time import utcnow
@@ -32,6 +32,18 @@ class Customer(Base):
     phone: Mapped[str] = mapped_column(String(30), unique=True, index=True)
     email: Mapped[str | None] = mapped_column(String(180), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class CustomerProfile(Base):
+    __tablename__ = "customer_profiles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), unique=True, index=True)
+    vehicle_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    registration: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    preferred_branch: Mapped[str] = mapped_column(String(80), default="Gurugram")
+    odometer_km: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    current_status: Mapped[str] = mapped_column(String(50), default="ACTIVE")
 
 
 class Lead(Base):
@@ -84,6 +96,51 @@ class ServiceRequest(Base):
     stage: Mapped[str] = mapped_column(String(40), default="OPEN", index=True)
     preferred_time_text: Mapped[str | None] = mapped_column(String(120), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class ServiceSlot(Base):
+    __tablename__ = "service_slots"
+    __table_args__ = (UniqueConstraint("branch", "starts_at", name="uq_service_slot_branch_time"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    branch: Mapped[str] = mapped_column(String(80), index=True)
+    starts_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    capacity: Mapped[int] = mapped_column(Integer, default=1)
+    booked_count: Mapped[int] = mapped_column(Integer, default=0)
+    service_kind: Mapped[str] = mapped_column(String(80), default="scheduled_service")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class ServiceBookingContext(Base):
+    __tablename__ = "service_booking_contexts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lead_id: Mapped[int] = mapped_column(ForeignKey("leads.id"), unique=True, index=True)
+    service_request_id: Mapped[int] = mapped_column(ForeignKey("service_requests.id"), unique=True, index=True)
+    requested_service: Mapped[str] = mapped_column(String(160), default="Scheduled service")
+    requested_branch: Mapped[str] = mapped_column(String(80), default="Gurugram")
+    requested_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    selected_slot_id: Mapped[int | None] = mapped_column(ForeignKey("service_slots.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(40), default="COLLECTING_DETAILS", index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class BookingRecovery(Base):
+    __tablename__ = "booking_recoveries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    idempotency_key: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    lead_id: Mapped[int] = mapped_column(ForeignKey("leads.id"), index=True)
+    service_request_id: Mapped[int] = mapped_column(ForeignKey("service_requests.id"), index=True)
+    slot_id: Mapped[int] = mapped_column(ForeignKey("service_slots.id"), index=True)
+    requested_payload: Mapped[dict] = mapped_column(JSON)
+    reason_code: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(30), default="PENDING", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=1)
+    last_error: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    resolved_appointment_id: Mapped[int | None] = mapped_column(ForeignKey("appointments.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class Interaction(Base):

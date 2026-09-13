@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     n8n_ui_base_url: str = ""
     admin_api_key: str = ""
     app_env: str = "development"
+    demo_controls_enabled: bool = False
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

@@ -35,12 +35,12 @@ INVENTORY_STATES = ["AVAILABLE", "RESERVED"]
 
 SEED_BASELINE = {
     "inventory": len(CATALOG) * UNITS_PER_MODEL,
-    "customers": 60,
-    "leads": 60,
-    "interactions": 60,
-    "appointments": 16,
-    "pending_approvals": 5,
-    "service_requests": 12,
+    "customers": 8,
+    "leads": 8,
+    "interactions": 8,
+    "appointments": 3,
+    "pending_approvals": 1,
+    "service_requests": 5,
 }
 
 NOT_INCLUDED = [
@@ -86,5 +86,14 @@ def demo_world_definition() -> dict:
             ],
         },
         "operational_seed": SEED_BASELINE,
+        "service_scheduling": {
+            "timezone": "Asia/Kolkata",
+            "source": "PostgreSQL service_slots",
+            "golden_path": {
+                "Gurugram Saturday": "full",
+                "Gurugram Monday": ["10:00", "14:00"],
+                "Noida Saturday": ["14:30"],
+            },
+        },
         "not_included": NOT_INCLUDED,
     }

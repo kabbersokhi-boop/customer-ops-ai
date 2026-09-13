@@ -1,5 +1,5 @@
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -12,10 +12,12 @@ from app.models import (
     Appointment,
     ApprovalRequest,
     AuditEvent,
+    BookingRecovery,
     CrmSync,
     Customer,
     Interaction,
     Lead,
+    ServiceBookingContext,
     ServiceRequest,
     SystemState,
     VehicleInventory,
@@ -32,14 +34,22 @@ from app.schemas.api import (
     ServiceIntake,
 )
 from app.services.agent import handle_channel_event
-from app.services.appointments import InventoryChanged, create_appointment
+from app.services.appointments import (
+    ContactConflict,
+    InventoryChanged,
+    SchedulerUnavailable,
+    SlotUnavailable,
+    create_appointment,
+    recovery_payload,
+)
 from app.services.approvals import decide_approval, request_discount_approval
 from app.services.crm import crm_provider_state, sync_appointment, sync_approval
 from app.services.inventory import InventoryUnavailable, search_inventory
 from app.services.leads import intake_lead
-from app.services.ops import find_lost_leads, manager_briefing, operations_summary
+from app.services.ops import NOISE_CHANNELS, find_lost_leads, manager_briefing, operations_summary
 from app.services.orchestration import demo_orchestration_config
 from app.services.service_requests import create_service_request
+from app.services.service_scheduling import available_slots, extract_requested_date, slot_dict
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(
@@ -52,6 +62,11 @@ app = FastAPI(
 def require_admin(x_admin_key: str | None = Header(default=None)) -> None:
     if settings.admin_api_key and x_admin_key != settings.admin_api_key:
         raise HTTPException(status_code=401, detail={"code": "ADMIN_AUTH_REQUIRED", "message": "Invalid admin key"})
+
+
+def require_demo_controls() -> None:
+    if not settings.demo_controls_enabled or settings.app_env.lower() not in {"development", "demo", "test"}:
+        raise HTTPException(status_code=404, detail="Demo controls are disabled")
 
 
 def _inventory_row(row):
@@ -182,6 +197,24 @@ def service_intake(payload: ServiceIntake, db: Session = Depends(get_db)):
     }
 
 
+@app.get("/api/service/availability")
+def service_availability(
+    branch: str = Query(default="Gurugram", max_length=80),
+    day: str = Query(default="Monday", max_length=40),
+    limit: int = Query(default=8, ge=1, le=20),
+    db: Session = Depends(get_db),
+):
+    requested_date = extract_requested_date(day)
+    if not requested_date:
+        raise HTTPException(status_code=400, detail={"code": "INVALID_DAY", "message": "Use a weekday or ISO date"})
+    return {
+        "branch": branch,
+        "date": requested_date.isoformat(),
+        "slots": [slot_dict(slot) for slot in available_slots(db, branch=branch, requested_date=requested_date, limit=limit)],
+        "source": "postgresql_service_slots",
+    }
+
+
 @app.post("/api/appointments")
 async def appointment_create(payload: AppointmentCreate, db: Session = Depends(get_db)):
     lead = db.get(Lead, payload.lead_id)
@@ -194,6 +227,37 @@ async def appointment_create(payload: AppointmentCreate, db: Session = Depends(g
             status_code=409,
             detail={"code": "INVENTORY_CHANGED", "message": str(exc), "safe_fallback": True},
         ) from exc
+    except (SlotUnavailable, ContactConflict) as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "BOOKING_CONFLICT", "message": str(exc), "safe_fallback": True},
+        ) from exc
+    except SchedulerUnavailable as exc:
+        context = db.scalar(
+            select(ServiceBookingContext).where(ServiceBookingContext.service_request_id == payload.service_request_id)
+        )
+        if context:
+            context.status = "RECOVERY_PENDING"
+            db.commit()
+        return JSONResponse(
+            status_code=202,
+            content={
+                "appointment_id": None,
+                "created": False,
+                "confirmed": False,
+                "status": "RECOVERY_PENDING",
+                "message": (
+                    "I have your preferred appointment, but the scheduling system is not responding. "
+                    "The booking is not confirmed. Your details are preserved for an idempotent retry."
+                ),
+                "recovery": {
+                    "id": exc.recovery.id,
+                    "reason_code": exc.recovery.reason_code,
+                    "duplicate_protection": True,
+                },
+                "idempotency": {"replayed": exc.recovery.attempts > 1, "key": payload.idempotency_key},
+            },
+        )
     if created:
         lead.stage = "TEST_DRIVE_BOOKED" if payload.kind == "test_drive" else "APPOINTMENT_BOOKED"
         lead.updated_at = utcnow()
@@ -204,6 +268,7 @@ async def appointment_create(payload: AppointmentCreate, db: Session = Depends(g
         "appointment_id": appt.id,
         "created": created,
         "status": appt.status,
+        "confirmed": True,
         "idempotency": {"replayed": not created, "key": appt.idempotency_key},
         "crm": crm,
     }
@@ -273,6 +338,7 @@ def failure_toggle(
     payload: FailureToggle,
     db: Session = Depends(get_db),
     _: None = Depends(require_admin),
+    __: None = Depends(require_demo_controls),
 ):
     state = db.scalar(select(SystemState).where(SystemState.service_name == payload.service_name))
     if not state:
@@ -290,6 +356,58 @@ def failure_toggle(
     )
     db.commit()
     return {"service_name": payload.service_name, "is_available": payload.is_available}
+
+
+@app.post("/api/ops/recoveries/{recovery_id}/retry")
+async def retry_booking_recovery(
+    recovery_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin),
+    __: None = Depends(require_demo_controls),
+):
+    recovery = db.get(BookingRecovery, recovery_id)
+    if not recovery:
+        raise HTTPException(status_code=404, detail="Recovery work item not found")
+    if recovery.status == "RESOLVED" and recovery.resolved_appointment_id:
+        return {
+            "appointment_id": recovery.resolved_appointment_id,
+            "created": False,
+            "confirmed": True,
+            "status": "BOOKED",
+            "idempotency": {"replayed": True, "key": recovery.idempotency_key},
+        }
+    try:
+        appointment, created = create_appointment(db, recovery_payload(recovery))
+    except SchedulerUnavailable as exc:
+        return JSONResponse(
+            status_code=202,
+            content={
+                "appointment_id": None,
+                "created": False,
+                "confirmed": False,
+                "status": "RECOVERY_PENDING",
+                "recovery": {"id": exc.recovery.id, "reason_code": exc.recovery.reason_code},
+            },
+        )
+    except (SlotUnavailable, ContactConflict) as exc:
+        recovery.status = "NEEDS_REVIEW"
+        recovery.last_error = str(exc)
+        db.commit()
+        raise HTTPException(status_code=409, detail={"code": "RECOVERY_CONFLICT", "message": str(exc)}) from exc
+    lead = db.get(Lead, appointment.lead_id)
+    if lead:
+        lead.stage = "SERVICE_BOOKED"
+        lead.updated_at = utcnow()
+        db.commit()
+    crm = await sync_appointment(db, appointment) if created else {"mode": "not_called", "status": "UNCHANGED"}
+    return {
+        "appointment_id": appointment.id,
+        "created": created,
+        "confirmed": True,
+        "status": appointment.status,
+        "idempotency": {"replayed": not created, "key": appointment.idempotency_key},
+        "crm": crm,
+    }
 
 
 @app.get("/api/ops/summary")
@@ -380,7 +498,9 @@ def ops_interactions(limit: int = Query(default=30, ge=1, le=200), db: Session =
 
 @app.get("/api/ops/leads")
 def ops_leads(limit: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db)):
-    rows = db.scalars(select(Lead).order_by(Lead.updated_at.desc()).limit(limit)).all()
+    rows = db.scalars(
+        select(Lead).where(~Lead.source_channel.in_(NOISE_CHANNELS)).order_by(Lead.updated_at.desc()).limit(limit)
+    ).all()
     customer_ids = {row.customer_id for row in rows}
     customers = {row.id: row for row in db.scalars(select(Customer).where(Customer.id.in_(customer_ids))).all()}
     return [
@@ -399,6 +519,7 @@ def ops_leads(limit: int = Query(default=20, ge=1, le=100), db: Session = Depend
             "trade_in": row.trade_in_vehicle,
             "crm_sync_status": row.crm_sync_status,
             "crm_record_id": row.crm_record_id,
+            "summary": row.summary,
             "updated_at": row.updated_at.isoformat(),
         }
         for row in rows
@@ -408,6 +529,10 @@ def ops_leads(limit: int = Query(default=20, ge=1, le=100), db: Session = Depend
 @app.get("/api/ops/appointments")
 def ops_appointments(limit: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db)):
     rows = db.scalars(select(Appointment).order_by(Appointment.created_at.desc()).limit(limit)).all()
+    lead_ids = {row.lead_id for row in rows}
+    leads = {row.id: row for row in db.scalars(select(Lead).where(Lead.id.in_(lead_ids))).all()}
+    customer_ids = {row.customer_id for row in leads.values()}
+    customers = {row.id: row for row in db.scalars(select(Customer).where(Customer.id.in_(customer_ids))).all()}
     return [
         {
             "id": row.id,
@@ -418,6 +543,15 @@ def ops_appointments(limit: int = Query(default=20, ge=1, le=100), db: Session =
             "scheduled_for": row.scheduled_for.isoformat(),
             "status": row.status,
             "idempotency_key": row.idempotency_key,
+            "customer_name": customers[leads[row.lead_id].customer_id].name if row.lead_id in leads else "Unknown",
+            "crm_status": (
+                db.scalar(
+                    select(CrmSync.status).where(
+                        CrmSync.entity_type == "appointment", CrmSync.entity_id == str(row.id)
+                    )
+                )
+                or "NOT_SYNCED"
+            ),
         }
         for row in rows
     ]
@@ -426,15 +560,43 @@ def ops_appointments(limit: int = Query(default=20, ge=1, le=100), db: Session =
 @app.get("/api/ops/service-requests")
 def ops_service_requests(limit: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db)):
     rows = db.scalars(select(ServiceRequest).order_by(ServiceRequest.created_at.desc()).limit(limit)).all()
+    customer_ids = {row.customer_id for row in rows}
+    customers = {row.id: row for row in db.scalars(select(Customer).where(Customer.id.in_(customer_ids))).all()}
     return [
         {
             "id": row.id,
+            "customer_name": customers[row.customer_id].name,
+            "registration": row.registration,
             "vehicle_model": row.vehicle_model,
             "issue_summary": row.issue_summary,
             "urgency": row.urgency,
             "stage": row.stage,
             "preferred_time_text": row.preferred_time_text,
             "created_at": row.created_at.isoformat(),
+        }
+        for row in rows
+    ]
+
+
+@app.get("/api/ops/recoveries")
+def ops_booking_recoveries(limit: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db)):
+    rows = db.scalars(select(BookingRecovery).order_by(BookingRecovery.updated_at.desc()).limit(limit)).all()
+    return [
+        {
+            "id": row.id,
+            "lead_id": row.lead_id,
+            "service_request_id": row.service_request_id,
+            "slot_id": row.slot_id,
+            "reason_code": row.reason_code,
+            "status": row.status,
+            "attempts": row.attempts,
+            "duplicate_protection": True,
+            "requested": {
+                "branch": row.requested_payload.get("branch"),
+                "scheduled_for": row.requested_payload.get("scheduled_for"),
+            },
+            "resolved_appointment_id": row.resolved_appointment_id,
+            "updated_at": row.updated_at.isoformat(),
         }
         for row in rows
     ]

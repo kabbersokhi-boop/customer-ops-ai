@@ -45,6 +45,8 @@ class AppointmentCreate(BaseModel):
         max_length=180,
         pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$",
     )
+    service_request_id: int | None = Field(default=None, ge=1)
+    slot_id: int | None = Field(default=None, ge=1)
 
 
 class DiscountRequest(BaseModel):
@@ -70,10 +72,16 @@ class ServiceIntake(BaseModel):
 
 
 class FailureToggle(BaseModel):
-    service_name: str = Field(pattern="^(inventory|crm|messaging)$")
+    service_name: str = Field(pattern="^(inventory|crm|messaging|scheduler)$")
     is_available: bool
 
 
 class LostLeadRecovery(BaseModel):
     lead_id: int
     note: str | None = None
+
+
+class ServiceAvailabilitySearch(BaseModel):
+    branch: str | None = Field(default=None, max_length=80)
+    day: str | None = Field(default=None, max_length=40)
+    limit: int = Field(default=8, ge=1, le=20)

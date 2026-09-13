@@ -16,7 +16,8 @@ from app.services.conversation import MessageAssessment, assess_message
 from app.services.crm import sync_activity, sync_approval, sync_customer, sync_lead
 from app.services.inventory import InventoryUnavailable, search_inventory
 from app.services.leads import MODELS, extract_budget, extract_model, intake_lead
-from app.services.service_requests import create_service_request, extract_preferred_time
+from app.services.service_requests import infer_urgency
+from app.services.service_scheduling import get_context, handle_service_booking
 
 READ_ONLY_TOOLS = [
     {
@@ -348,7 +349,10 @@ async def handle_channel_event(db: Session, event: ChannelEvent) -> dict:
     if replayed:
         return replayed
 
+    existing_service_context = get_context(db, event.conversation_lead_id)
     assessment = assess_message(event.text, has_supported_model=extract_model(event.text) is not None)
+    if existing_service_context and existing_service_context.status not in {"BOOKED", "ESCALATED"}:
+        assessment = MessageAssessment(intent="service", request_type="service_request")
     lead, created = intake_lead(
         db,
         event.customer_name,
@@ -382,29 +386,24 @@ async def handle_channel_event(db: Session, event: ChannelEvent) -> dict:
     inventory: list[dict] = []
     dms_available = True
     service_request = None
+    service_booking = None
     approval = None
     provider = {"status": "not_used", "reason": "deterministic_route"}
     if assessment.request_type == "service_request":
-        service_request, _ = create_service_request(
+        service_result = handle_service_booking(
             db,
-            name=event.customer_name,
-            phone=event.customer_phone,
+            lead_id=lead.id,
+            customer_name=event.customer_name,
+            customer_phone=event.customer_phone,
             message=event.text,
+            urgency=infer_urgency(event.text),
             vehicle_model=lead.model_interest,
-            preferred_time_text=extract_preferred_time(event.text),
-            event_id=f"service:{event.event_id}",
+            event_id=event.event_id,
         )
-        safety = (
-            " If braking feels unsafe, stop driving and seek roadside assistance."
-            if service_request.urgency in {"HIGH", "CRITICAL"}
-            else ""
-        )
-        reply = (
-            f"I’ve created service request #{service_request.id} with {service_request.urgency.lower()} priority. "
-            "A workshop advisor must review it and select a slot before anything is confirmed."
-            f"{safety}"
-        )
-        response_mode = "deterministic-service"
+        service_request = service_result["service_request"]
+        service_booking = service_result["booking"]
+        reply = service_result["reply"]
+        response_mode = "deterministic-service-safety" if service_booking["status"] == "ESCALATED" else "governed-service"
         tool_trace = []
     elif assessment.request_type == "discount_request":
         tool_trace = []
@@ -535,6 +534,7 @@ async def handle_channel_event(db: Session, event: ChannelEvent) -> dict:
         },
         "inventory_matches": inventory[:5],
         "service_request_id": service_request.id if service_request else None,
+        "service_booking": service_booking,
         "approval": approval,
         "reply": reply,
         "response_mode": response_mode,

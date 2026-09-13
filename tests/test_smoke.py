@@ -1,4 +1,3 @@
-import asyncio
 import os
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
@@ -7,8 +6,11 @@ os.environ["DATABASE_URL"] = "sqlite:///./test_customer_ops.db"
 os.environ["AIRTABLE_ENABLED"] = "false"
 os.environ["NVIDIA_NIM_API_KEY"] = "replace_me"
 os.environ["ORCHESTRATION_MODE"] = "direct"
+os.environ["APP_ENV"] = "test"
+os.environ["DEMO_CONTROLS_ENABLED"] = "true"
 
 import httpx
+import uvloop
 from sqlalchemy import select
 
 from app.core.config import settings
@@ -19,13 +21,17 @@ from app.main import app
 from app.models import (
     Appointment,
     ApprovalRequest,
+    BookingRecovery,
+    Customer,
     Interaction,
     Lead,
     ServiceRequest,
+    ServiceSlot,
     SystemState,
     VehicleInventory,
 )
 from app.providers.nim import NIMProviderError
+from app.services.service_scheduling import seed_service_slots
 
 
 class APIClient:
@@ -37,7 +43,7 @@ class APIClient:
             ) as session:
                 return await session.request(method, path, **kwargs)
 
-        return asyncio.run(send())
+        return uvloop.run(send())
 
     def get(self, path: str, **kwargs):
         return self.request("GET", path, **kwargs)
@@ -55,6 +61,8 @@ def setup_module():
     db = SessionLocal()
     try:
         db.add(SystemState(service_name="inventory", is_available=True))
+        db.add(SystemState(service_name="scheduler", is_available=True))
+        seed_service_slots(db)
         db.add(
             VehicleInventory(
                 stock_id="TEST-FOR-0001",
@@ -112,8 +120,9 @@ def test_demo_world_defines_exact_bounded_synthetic_scope():
     assert world["catalogue"]["inventory_rows"] == 300
     assert len(world["catalogue"]["models"]) == 10
     assert all(model["seeded_units"] == 30 for model in world["catalogue"]["models"])
-    assert world["operational_seed"]["customers"] == 60
-    assert world["operational_seed"]["pending_approvals"] == 5
+    assert world["operational_seed"]["customers"] == 8
+    assert world["operational_seed"]["pending_approvals"] == 1
+    assert world["service_scheduling"]["source"] == "PostgreSQL service_slots"
     assert any("warranty" in item for item in world["not_included"])
 
 
@@ -808,3 +817,162 @@ def test_duplicate_discount_request_reuses_pending_approval():
     assert first["approval_id"] == second["approval_id"]
     assert first["created"] is True
     assert second["created"] is False
+
+
+def _service_booking_offer(phone: str, suffix: str, hour: str) -> dict:
+    first = client.post(
+        "/api/channels/inbound",
+        json={
+            "event_id": f"service-start-{suffix}",
+            "channel": "demo-messaging",
+            "customer_name": f"Service Flow {suffix}",
+            "customer_phone": phone,
+            "text": "My car needs its 40,000 km service. Can I come Saturday?",
+        },
+    ).json()
+    assert first["service_booking"]["status"] == "ALTERNATIVES_OFFERED"
+    assert first["service_booking"]["available"] == []
+    assert first["service_booking"]["alternatives"]
+    monday = client.post(
+        "/api/channels/inbound",
+        json={
+            "event_id": f"service-monday-{suffix}",
+            "channel": "demo-messaging",
+            "customer_name": f"Service Flow {suffix}",
+            "customer_phone": phone,
+            "text": "Actually, Monday works.",
+            "conversation_lead_id": first["lead"]["id"],
+        },
+    ).json()
+    if monday["service_booking"]["status"] == "AWAITING_CONFIRMATION":
+        return {"lead_id": first["lead"]["id"], **monday["service_booking"]}
+    assert monday["service_booking"]["available"]
+    selected = client.post(
+        "/api/channels/inbound",
+        json={
+            "event_id": f"service-select-{suffix}",
+            "channel": "demo-messaging",
+            "customer_name": f"Service Flow {suffix}",
+            "customer_phone": phone,
+            "text": f"{hour} works for me.",
+            "conversation_lead_id": first["lead"]["id"],
+        },
+    ).json()
+    assert selected["service_booking"]["status"] == "AWAITING_CONFIRMATION"
+    assert selected["service_booking"]["confirmed"] is False
+    return {"lead_id": first["lead"]["id"], **selected["service_booking"]}
+
+
+def test_service_golden_path_revalidates_slot_persists_contact_and_suppresses_duplicate():
+    offer = _service_booking_offer("+919999901001", "golden", "10:00")
+    slot = offer["slot"]
+    payload = {
+        "lead_id": offer["lead_id"],
+        "kind": "service",
+        "branch": slot["branch"],
+        "scheduled_for": slot["starts_at"],
+        "idempotency_key": offer["idempotency_key"],
+        "service_request_id": offer["service_request_id"],
+        "slot_id": slot["slot_id"],
+        "contact_name": "Kabir Mehta",
+        "contact_phone": "+919999901099",
+        "contact_email": "kabir@example.com",
+    }
+    first = client.post("/api/appointments", json=payload)
+    replay = client.post("/api/appointments", json=payload)
+    assert first.status_code == 200
+    assert first.json()["confirmed"] is True
+    assert replay.json()["appointment_id"] == first.json()["appointment_id"]
+    assert replay.json()["idempotency"]["replayed"] is True
+    db = SessionLocal()
+    try:
+        assert db.query(Appointment).filter_by(idempotency_key=offer["idempotency_key"]).count() == 1
+        assert db.query(ServiceSlot).filter_by(id=slot["slot_id"]).one().booked_count == 1
+        customer = db.query(Customer).filter_by(phone="+919999901099").one()
+        assert customer.name == "Kabir Mehta"
+        assert customer.email == "kabir@example.com"
+    finally:
+        db.close()
+
+
+def test_scheduler_timeout_creates_recoverable_work_and_retry_does_not_duplicate():
+    offer = _service_booking_offer("+919999901002", "recovery", "14:00")
+    slot = offer["slot"]
+    payload = {
+        "lead_id": offer["lead_id"],
+        "kind": "service",
+        "branch": slot["branch"],
+        "scheduled_for": slot["starts_at"],
+        "idempotency_key": offer["idempotency_key"],
+        "service_request_id": offer["service_request_id"],
+        "slot_id": slot["slot_id"],
+        "contact_name": "Recovery Customer",
+        "contact_phone": "+919999901002",
+        "contact_email": "recovery@example.com",
+    }
+    client.post("/api/admin/failure", json={"service_name": "scheduler", "is_available": False})
+    failed = client.post("/api/appointments", json=payload)
+    assert failed.status_code == 202
+    assert failed.json()["confirmed"] is False
+    assert failed.json()["status"] == "RECOVERY_PENDING"
+    recovery_id = failed.json()["recovery"]["id"]
+    db = SessionLocal()
+    try:
+        assert db.query(Appointment).filter_by(idempotency_key=offer["idempotency_key"]).count() == 0
+        assert db.get(BookingRecovery, recovery_id).status == "PENDING"
+    finally:
+        db.close()
+    assert client.get("/api/ops/summary").json()["integration_issues"] >= 1
+    client.post("/api/admin/failure", json={"service_name": "scheduler", "is_available": True})
+    recovered = client.post(f"/api/ops/recoveries/{recovery_id}/retry", json={}).json()
+    replay = client.post(f"/api/ops/recoveries/{recovery_id}/retry", json={}).json()
+    assert recovered["confirmed"] is True
+    assert replay["appointment_id"] == recovered["appointment_id"]
+    assert replay["idempotency"]["replayed"] is True
+    db = SessionLocal()
+    try:
+        assert db.query(Appointment).filter_by(idempotency_key=offer["idempotency_key"]).count() == 1
+        assert db.get(BookingRecovery, recovery_id).status == "RESOLVED"
+    finally:
+        db.close()
+
+
+def test_service_slot_is_revalidated_when_capacity_changes_before_confirmation():
+    first = client.post(
+        "/api/channels/inbound",
+        json={
+            "event_id": "service-start-race",
+            "channel": "demo-messaging",
+            "customer_name": "Service Race",
+            "customer_phone": "+919999901003",
+            "text": "My car needs service Saturday at Noida at 14:30.",
+        },
+    ).json()
+    offer = first["service_booking"]
+    assert offer["status"] == "AWAITING_CONFIRMATION"
+    db = SessionLocal()
+    try:
+        slot = db.get(ServiceSlot, offer["slot"]["slot_id"])
+        slot.booked_count = slot.capacity
+        db.commit()
+    finally:
+        db.close()
+    response = client.post(
+        "/api/appointments",
+        json={
+            "lead_id": first["lead"]["id"],
+            "kind": "service",
+            "branch": offer["slot"]["branch"],
+            "scheduled_for": offer["slot"]["starts_at"],
+            "idempotency_key": offer["idempotency_key"],
+            "service_request_id": offer["service_request_id"],
+            "slot_id": offer["slot"]["slot_id"],
+        },
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "BOOKING_CONFLICT"
+    db = SessionLocal()
+    try:
+        assert db.query(Appointment).filter_by(idempotency_key=offer["idempotency_key"]).count() == 0
+    finally:
+        db.close()
