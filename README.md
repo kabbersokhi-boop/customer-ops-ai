@@ -10,7 +10,7 @@ This is a personal reference implementation built specifically as a capability d
 
 **Synthetic data, real engineering behavior.** No TSG internal systems, real customer records, production WhatsApp traffic, telephony, live dealer data, or private company data are used here. Customer identities, vehicles, registrations, inventory, slot capacity, appointments, and operating history are synthetic. The PostgreSQL transactions, API boundaries, NVIDIA NIM integration, Airtable API projection, n8n orchestration, idempotency, and failure semantics are implemented as real software paths.
 
-![Confirmed customer booking from the final live walkthrough](docs/evidence/final/customer-confirmed.jpg)
+![Confirmed customer booking from the final live walkthrough](docs/evidence/final/customer-confirmed.webp)
 
 ## What this system proves
 
@@ -55,7 +55,7 @@ Duplicate confirmation uses a stable idempotency key, so replay returns the exis
 
 The manager workspace is intentionally exception-led rather than a database viewer. It surfaces KPIs, work needing intervention, recent activity, service appointments, open service work, customer context, manager decisions, and technical trace details.
 
-![Manager operations dashboard from the final live walkthrough](docs/evidence/final/manager-overview.jpg)
+![Manager operations dashboard from the final live walkthrough](docs/evidence/final/manager-overview.webp)
 
 This is important to the project story: the customer-facing assistant is only the interface. The actual product is a governed customer-operations system.
 
@@ -76,27 +76,51 @@ The repository contains **eight credential-free n8n workflow exports**. Business
 
 ### Inbound orchestration
 
-The live inbound execution visibly follows:
+The live inbound execution follows this route:
 
-`Inbound Channel Webhook -> Normalize Channel Event -> AI Operations Control Layer -> Operational Priority? -> Mark Priority Route / Standard Route -> Return Channel Response`
-
-![Successful Customer Enquiry Intake execution](docs/evidence/final/n8n-inbound-execution.jpg)
+```mermaid
+flowchart LR
+    A[Inbound Channel Webhook] --> B[Normalize Channel Event]
+    B --> C[AI Operations Control Layer]
+    C --> D{Operational Priority?}
+    D -->|Yes| E[Mark Priority Route]
+    D -->|No| F[Standard Route]
+    E --> G[Return Channel Response]
+    F --> G
+```
 
 ### Safety routing
 
 The service escalation workflow makes a safety-sensitive concern explicit operational work:
 
-`Service Channel Event -> Create Governed Service Case -> Critical Safety Case? -> Immediate Workshop Escalation / Workshop Queue Boundary -> Return Service Result`
-
-![Service Escalation and Routing workflow](docs/evidence/final/n8n-service-escalation.jpg)
+```mermaid
+flowchart LR
+    A[Service Channel Event] --> B[Create Governed Service Case]
+    B --> C{Critical Safety Case?}
+    C -->|Yes| D[Immediate Workshop Escalation]
+    C -->|No| E[Workshop Queue Boundary]
+    D --> F[Return Service Result]
+    E --> F
+```
 
 ### Booking boundary
 
 The booking workflow is deliberately typed and replay-safe:
 
-`Appointment Command -> Validate Typed Command Shape -> Create Idempotent Appointment -> New Booking? -> Provider Confirmation Boundary / Suppress Duplicate Notification -> Return Booking Result`
+```mermaid
+flowchart LR
+    A[Appointment Command] --> B[Validate Typed Command Shape]
+    B --> C[Create Idempotent Appointment]
+    C --> D{New Booking?}
+    D -->|Yes| E[Provider Confirmation Boundary]
+    D -->|No| F[Suppress Duplicate Notification]
+    E --> G[Return Booking Result]
+    F --> G
+```
 
 The `New Booking?` branch checks whether the booking was **created**, not merely whether a response is confirmed. An idempotent replay can be confirmed while still being `created=false`, which is why duplicate notification remains suppressed.
+
+The full n8n execution screenshots are retained in [`docs/evidence/final/`](docs/evidence/final/) as supporting evidence; the diagrams above are intentionally GitHub-native so node names stay readable at any browser zoom.
 
 ## Architecture and responsibility split
 
@@ -183,8 +207,8 @@ Voice or WhatsApp would change the interface, not the authority model.
 At the current final commit, CI verifies:
 
 ```text
-Compile                 passed
-Ruff                    passed
+Compile                  passed
+Ruff                     passed
 n8n workflow exports     8 validated
 Secret / history scan    passed
 Tests                    61 passed
