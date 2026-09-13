@@ -1,276 +1,205 @@
 # Customer Operations AI
 
-**Governed automotive service automation built to show how conversational AI can safely complete real business workflows.**
+**A governed automotive customer-operations system.** Natural-language requests become grounded, validated, and transactional business actions. The chatbot is the interface; it is not the authority.
 
-This is a personal reference implementation built specifically as a capability demonstration for **The Sachdev Group (TSG Automotive)** and the kind of AI Automation & Integration Manager work the role requires: AI-assisted customer journeys, workflow automation, API integration, CRM projection, operational controls, and human escalation.
+This personal reference implementation was built specifically as a capability demonstration for an **AI Automation & Integration Manager** opportunity at **The Sachdev Group (TSG Automotive)**. It is not commissioned work, a TSG deployment, or a claim of access to TSG systems or data.
 
-> **Prototype constraint:** built in under 24 hours with zero paid API spend. The goal was not to imitate a production dealership stack; it was to prove the architecture, integration patterns, Python implementation depth, and operational control model needed to connect real channels and systems later.
+> **Prototype constraint:** built in under 24 hours with zero paid API spend. The prototype uses synthetic dealership data, but exercises real PostgreSQL transactions, NVIDIA NIM integration, Airtable API calls, n8n executions, validation, idempotency, and failure semantics.
 
-**Current verified build:** 61 tests passed · 8 n8n workflow exports validated · Ruff passed · secret scan passed · Docker build passed
+**Repository verification:** 61 tests collected and passed · 8 credential-free n8n exports validated · Ruff passed · history-aware secret scan passed · Docker image build passed.
 
-**Synthetic data, real engineering behavior.** No TSG internal systems, real customer records, production WhatsApp traffic, telephony, live dealer data, or private company data are used here. Customer identities, vehicles, registrations, inventory, slot capacity, appointments, and operating history are synthetic. The PostgreSQL transactions, API boundaries, NVIDIA NIM integration, Airtable API projection, n8n orchestration, idempotency, and failure semantics are implemented as real software paths.
+<img src="docs/evidence/final/01-customer-preference-and-grounded-slots.png" alt="Customer conversation with a 40,000 km service request and grounded slot alternatives" width="100%">
 
-![Confirmed customer booking from the final live walkthrough](docs/evidence/final/customer-confirmed.webp)
+## What was built
 
-## What this system proves
+The system turns a customer request into an accountable operational outcome:
 
-A normal chatbot ends with text. This system can carry a customer request through a bounded business process while keeping authority in deterministic software:
-
-```text
+~~~text
 customer conversation
-    -> n8n channel orchestration
-    -> FastAPI / Python control layer
-    -> bounded NVIDIA NIM interpretation
-    -> PostgreSQL facts and state
-    -> explicit customer confirmation
-    -> transactional booking
-    -> CRM projection
-    -> manager visibility and recovery
-```
+  -> normalized event
+  -> grounded service availability
+  -> explicit confirmation
+  -> typed booking command
+  -> PostgreSQL transaction
+  -> CRM projection
+  -> manager visibility, audit, and safe recovery
+~~~
 
-The design rule is simple:
+The responsibility split is deliberate:
 
-**NIM interprets. Python validates and authorizes. PostgreSQL is operational truth. n8n orchestrates. CRM receives a business-facing projection.**
+- **NVIDIA NIM** interprets bounded language and produces responses within a constrained role.
+- **Python / FastAPI** validates typed commands, applies business rules, enforces confirmation boundaries, and controls retries.
+- **PostgreSQL** owns operational truth: customer state, slots, appointments, recovery work, and audit records.
+- **n8n** normalizes events, routes workflows, exposes executions, and isolates provider boundaries.
+- **Airtable** receives a business-facing CRM projection for this prototype. It does not authorize bookings.
+- **Manager workspace** shows operational state and supports intervention.
 
-That boundary matters because the model must never authoritatively invent availability, booking success, inventory, price, approval, or system state.
+The model cannot authoritatively invent availability, booking success, price, approval, or system state.
 
-## Final live-verified service journey
+## Captured service journey
 
-The final walkthrough used a synthetic customer, **Arjun Mehta**, and an **Innova Hycross**.
+The screenshots record a synthetic walkthrough for **Arjun Mehta** and an **Innova Hycross**. They demonstrate the system behavior, not a production dealership environment.
 
-1. The assistant collected customer name and vehicle context before opening the service flow.
-2. The customer said: `My Innova's due for its 40,000 km service. Saturday would be easiest but I can do Monday if needed.`
-3. The system retained **Saturday as the primary preference** and **Monday as fallback**.
-4. PostgreSQL-backed availability showed Gurugram full on Saturday and offered only verified alternatives: Monday 10:00 / 14:00 in Gurugram and Saturday 14:30 in Noida.
-5. An unrelated question during the active service conversation was refused without mutating booking state.
-6. The customer changed intent naturally with `Actually Monday.` and selected 10:00.
-7. The UI required explicit confirmation. Capacity was revalidated before commit.
-8. One appointment was created transactionally and projected to Airtable.
-9. The manager dashboard showed the correct customer, vehicle, booking and CRM state.
-10. n8n showed the successful orchestration path through the booking boundary.
+1. The customer requests a 40,000 km service. Saturday is the primary preference; Monday is the fallback.
+2. The control layer reads PostgreSQL-backed service slots. Gurugram is full on Saturday, so it offers only verified alternatives: Monday 10:00 and 14:00 in Gurugram, or Saturday 14:30 in Noida.
+3. An unrelated question does not change the active service state. The conversation remains inside the service boundary.
+4. The customer selects Monday at 10:00. The interface presents the selected slot but does not create an appointment.
+5. The customer explicitly confirms. The booking command revalidates capacity inside the transaction and uses one idempotency key.
+6. The system creates one appointment, updates the CRM projection, and exposes the result to operations.
 
-Duplicate confirmation uses a stable idempotency key, so replay returns the existing booking rather than creating another business effect.
+<img src="docs/evidence/final/02-customer-booking-confirmed.png" alt="Customer explicitly confirms the service appointment and receives the booked result" width="100%">
 
-## Operations visibility
+The confirmation screen is an authority boundary. A conversational offer is not a reservation, and a response is not a booking until the typed command succeeds.
 
-The manager workspace is intentionally exception-led rather than a database viewer. It surfaces KPIs, work needing intervention, recent activity, service appointments, open service work, customer context, manager decisions, and technical trace details.
+## Architecture and authority boundaries
 
-![Manager operations dashboard from the final live walkthrough](docs/evidence/final/manager-overview.webp)
+~~~mermaid
+flowchart LR
+    C[Customer channel] --> N[n8n orchestration]
+    N --> A[FastAPI / Python control layer]
+    A --> L[NVIDIA NIM<br/>bounded interpretation]
+    A --> P[(PostgreSQL<br/>operational truth)]
+    A --> B[Typed booking and recovery]
+    B --> N
+    N --> R[CRM or DMS adapter]
+    P --> M[Manager workspace]
+    R --> M
+    N --> C
+~~~
 
-This is important to the project story: the customer-facing assistant is only the interface. The actual product is a governed customer-operations system.
+| Component | Owns | Does not own |
+|---|---|---|
+| NVIDIA NIM | bounded language interpretation and approved read-only reasoning | availability, booking success, approval, price, or data mutation |
+| Python / FastAPI | validation, state transitions, confirmation, authorization, provider guards, and retry behavior | CRM transaction authority |
+| PostgreSQL | customers, slots, appointments, recovery work, replay keys, and audit records | conversational presentation |
+| n8n | triggers, webhooks, routing, schedules, execution visibility, and provider boundaries | business policy or arbitrary business authority |
+| Airtable | prototype CRM projection | booking validity or operational source of truth |
+
+**Control rule:** n8n decides when and where a workflow runs. Python decides whether and what an action means. PostgreSQL stores the result. CRM systems receive projections. NVIDIA NIM operates within those boundaries.
 
 ## n8n automation estate
 
-The repository contains **eight credential-free n8n workflow exports**. Business policy stays in Python; n8n owns triggers, routing, schedules, orchestration visibility, provider boundaries, and recovery plumbing.
+The repository contains eight credential-free n8n exports. The workflows make orchestration visible without moving domain policy into low-code nodes.
 
-| Workflow | Business purpose |
+<img src="docs/evidence/final/06-n8n-workflow-estate.png" alt="n8n workflow estate containing all eight Customer Operations AI workflows" width="100%">
+
+| Workflow | Purpose and important control |
 |---|---|
-| **Customer Enquiry Intake** | Normalizes inbound channel payloads, invokes the control layer, classifies operational priority, and returns a typed response |
-| **Service Booking & Confirmation** | Validates the typed booking command, creates the appointment idempotently, distinguishes new bookings from replay, and suppresses duplicate downstream notification |
-| **Service Escalation & Routing** | Creates a governed service case and separates critical safety escalation from a normal workshop queue boundary |
-| **Manager Approval Decision** | Applies a typed human commercial decision while preserving the delivery boundary |
-| **Customer Follow-up Recovery** | Finds stale high-intent leads and queues recoverable follow-up work |
-| **Integration Failure Recovery** | Classifies provider errors, applies bounded backoff, and preserves safe retry semantics |
-| **Manager Operations Briefing** | Pulls grounded operational metrics and prepares a manager-facing briefing boundary |
-| **Operations Health Monitor** | Detects safe fallback / integration state and prepares an operational alert |
+| **Customer Enquiry Intake** | Receives a channel event, normalizes it, invokes the governed control layer, sets priority routing, and returns the typed response. |
+| **Service Booking & Confirmation** | Validates the booking shape, creates one idempotent appointment, identifies a new booking versus a replay, and gates provider confirmation. |
+| **Service Escalation & Routing** | Creates a governed service case and sends critical safety cases to an immediate workshop escalation path. |
+| **Manager Approval Decision** | Sends a typed human decision to the API, audits it, and stops at an approved message boundary. |
+| **Customer Follow-up Recovery** | Finds stale high-intent leads on a schedule and queues idempotent follow-up work without sending an unapproved message. |
+| **Integration Failure Recovery** | Classifies provider failures, waits for bounded backoff, and requires replay through an idempotent entry point. |
+| **Manager Operations Briefing** | Reads grounded operations metrics, prepares the manager payload, and exposes a delivery adapter boundary. |
+| **Operations Health Monitor** | Checks control-layer health, detects safe fallback, and prepares an operational alert when verification is unavailable. |
 
-### Inbound orchestration
+### Inbound normalization and control path
 
-The live inbound execution follows this route:
+The successful **Customer Enquiry Intake** execution shows the actual control path. **Inbound Channel Webhook** accepts the request. **Normalize Channel Event** creates the typed envelope and preserves conversation continuity. **AI Operations Control Layer** calls FastAPI with a 120-second provider budget. **Operational Priority?** selects **Mark Priority Route** or **Standard Route**; both preserve the governed response and execution metadata.
 
-```mermaid
-flowchart LR
-    A[Inbound Channel Webhook] --> B[Normalize Channel Event]
-    B --> C[AI Operations Control Layer]
-    C --> D{Operational Priority?}
-    D -->|Yes| E[Mark Priority Route]
-    D -->|No| F[Standard Route]
-    E --> G[Return Channel Response]
-    F --> G
-```
+<img src="docs/evidence/final/07-n8n-customer-enquiry-intake-execution.png" alt="Successful Customer Enquiry Intake execution in n8n" width="100%">
 
-### Safety routing
+### Booking and idempotency path
 
-The service escalation workflow makes a safety-sensitive concern explicit operational work:
+**Appointment Command** begins the booking workflow. **Validate Typed Command Shape** forwards only required command fields. **Create Idempotent Appointment** calls the API. **New Booking?** branches on the **created** result, not merely on a confirmed response. **Provider Confirmation Boundary** permits one downstream confirmation only after a new appointment exists. **Suppress Duplicate Notification** handles replay and recovery-pending results without another customer effect.
 
-```mermaid
-flowchart LR
-    A[Service Channel Event] --> B[Create Governed Service Case]
-    B --> C{Critical Safety Case?}
-    C -->|Yes| D[Immediate Workshop Escalation]
-    C -->|No| E[Workshop Queue Boundary]
-    D --> F[Return Service Result]
-    E --> F
-```
+<img src="docs/evidence/final/08-n8n-service-booking-execution.png" alt="Successful Service Booking and Confirmation execution in n8n" width="100%">
 
-### Booking boundary
+### Safety routing and provider recovery
 
-The booking workflow is deliberately typed and replay-safe:
+**Service Channel Event** calls **Create Governed Service Case**. **Critical Safety Case?** separates **Immediate Workshop Escalation** from the normal **Workshop Queue Boundary**. The workflow does not diagnose a vehicle or fabricate an appointment. The separate **Integration Failure Recovery** workflow records provider-failure context, applies **Bounded Backoff**, and sends only an operations handoff; any retry must reuse the original idempotency key.
 
-```mermaid
-flowchart LR
-    A[Appointment Command] --> B[Validate Typed Command Shape]
-    B --> C[Create Idempotent Appointment]
-    C --> D{New Booking?}
-    D -->|Yes| E[Provider Confirmation Boundary]
-    D -->|No| F[Suppress Duplicate Notification]
-    E --> G[Return Booking Result]
-    F --> G
-```
+<img src="docs/evidence/final/09-n8n-service-escalation-routing.png" alt="Service Escalation and Routing workflow with critical safety branch" width="100%">
 
-The `New Booking?` branch checks whether the booking was **created**, not merely whether a response is confirmed. An idempotent replay can be confirmed while still being `created=false`, which is why duplicate notification remains suppressed.
+## Manager operations workspace
 
-The full n8n execution screenshots are retained in [`docs/evidence/final/`](docs/evidence/final/) as supporting evidence; the diagrams above are intentionally GitHub-native so node names stay readable at any browser zoom.
+The manager interface is exception-led. It is not a database viewer. It prioritizes confirmed bookings, intervention count, booking completion rate, SLA risk, integration issues, safety-sensitive cases, human handoffs, commercial decisions, and recent operational activity.
 
-## Architecture and responsibility split
+<img src="docs/evidence/final/03-manager-operations-overview.png" alt="Manager operations dashboard with KPIs, intervention queue, and recent activity" width="100%">
 
-```mermaid
-flowchart LR
-    C[Web chat / channel adapter] --> N[n8n orchestration]
-    N --> A[FastAPI / Python governed control layer]
-    A --> L[NVIDIA NIM bounded language interpretation]
-    A --> D[(PostgreSQL operational truth)]
-    A --> S[Transactional booking / recovery]
-    S --> N
-    N --> R[CRM / DMS adapter]
-    D --> M[Manager operations dashboard]
-    R --> M
-    N --> C
-```
+The lower workspace exposes recent service appointments, open service work, customer context, manager decisions, CRM state, and technical trace. This permits an operator to investigate and intervene without giving privileged authority to the chat interface.
 
-| Component | Owns | Explicitly does not own |
-|---|---|---|
-| **NVIDIA NIM** | bounded language interpretation and allowed read-only reasoning | availability, booking success, pricing authority, approvals, data mutation |
-| **FastAPI / Python** | business meaning, validation, state transitions, confirmation boundary, retry semantics, provider guards | CRM as source of truth |
-| **PostgreSQL** | customers, slots, appointments, recovery work, audit and replay keys | conversational presentation |
-| **n8n** | triggers, routing, schedules, webhooks, integration boundaries and visible execution | booking policy or arbitrary business authority |
-| **Airtable** | business-facing CRM projection for the prototype | booking validity or transaction authority |
-| **Browser** | customer and manager experiences | privileged SQL, credentials, unrestricted model tools |
+<img src="docs/evidence/final/04-manager-service-appointments-and-context.png" alt="Manager dashboard showing appointments, open service work, customer context, and decisions" width="100%">
 
-## Airtable is a replaceable CRM adapter
+## CRM projection: Airtable is replaceable
 
-Airtable is intentionally used as a **lightweight CRM projection**, not as the authoritative business system.
+The Airtable Appointments table is evidence of a business-facing projection after the booking transaction. Airtable is a **lightweight CRM adapter for this prototype**, not an enterprise CRM and not the source of operational truth.
 
-In a production TSG environment the same adapter boundary can be replaced with **HubSpot, Zoho, Salesforce, an in-house CRM, or a dealer-management-system integration** without moving booking authority out of the Python/PostgreSQL control layer.
+<img src="docs/evidence/final/05-airtable-appointments-crm-projection.png" alt="Airtable Appointments table showing the projected service booking" width="100%">
 
-That separation is deliberate: changing the CRM should be an integration task, not a rewrite of business logic.
+The same adapter boundary can connect **HubSpot, Zoho, Salesforce, an in-house CRM, or a dealership DMS** in production. Replacing the adapter does not move transaction authority out of Python and PostgreSQL. The appointment projection includes customer, vehicle, service request, operational status, next action, and an idempotency key; FastAPI updates PostgreSQL first and records CRM failures separately.
 
-## Synthetic dealership world, by design
+## Deterministic synthetic operating world
 
-The demo uses a deterministic synthetic operating environment so the same scenarios can be reset, replayed, regression-tested, and demonstrated without exposing real customer or dealer information.
+The dealership world is intentionally synthetic and deterministic. It allows business constraints, failure conditions, and customer journeys to be reset, replayed, and regression-tested without TSG data or real customer data.
 
-The machine-readable world is defined in `app/demo_world.py` and seeded with a fixed random seed (`42`). It contains:
+- **app/demo_world.py** defines the bounded catalog and operational baseline; the seed uses fixed random seed 42.
+- The world includes 300 synthetic inventory rows across ten models, five synthetic branches, eight seeded customers, five service requests, three appointments, and one pending approval.
+- The service fixture keeps Gurugram full on Saturday, makes Monday 10:00 and 14:00 available in Gurugram, and makes Saturday 14:30 available in Noida.
+- **make demo-reset** rebuilds the guarded local baseline and can snapshot only application-owned Airtable tables before cleanup.
 
-- **300 synthetic inventory rows**, exactly 30 units for each of 10 models
-- **5 synthetic branches:** Gurugram, New Delhi, Noida, Faridabad, Ghaziabad
-- structured vehicle variant, transmission, fuel, colour, branch, price, availability, test-drive and delivery fields
-- **8 seeded customers**
-- **5 service requests**, including a safety-sensitive case
-- **3 seeded service appointments**
-- **1 awaiting-confirmation case**
-- **1 pending commercial approval**
-- integration-state flags and secondary sales / handoff examples
+Synthetic data is test infrastructure. It is not presented as dealership data, production demand, or evidence of customer performance.
 
-The interview fixture deliberately keeps Gurugram full on Saturday, available Monday at 10:00 and 14:00, and Noida available Saturday at 14:30. That gives the conversation a repeatable business constraint against which language interpretation can be tested.
+## Failure and safety semantics
 
-Synthetic data is not presented as production evidence. It is test infrastructure for proving the control flow.
+**Safety-sensitive service concerns:** a grinding-brake report becomes a governed service case with critical priority. The system avoids diagnosis, blocks routine auto-booking, and routes the case for workshop attention.
 
-## Safety and failure semantics
+**Scheduler or provider uncertainty:** a timeout never becomes a false booking confirmation. The requested slot and contact payload are preserved as recovery work. No appointment is created. A manager retry uses the same idempotency key; once it succeeds, later retries return the existing appointment.
 
-Two non-happy paths shape the architecture:
+**CRM failure:** Airtable failure does not invalidate the PostgreSQL transaction. The CRM sync state is recorded for operational follow-up.
 
-**Safety-sensitive service concern**
+## Production extension: same control layer, new adapters
 
-`brakes are grinding -> no diagnosis -> governed service case -> priority route -> manager visibility`
+The following are production extensions, not current features:
 
-**Scheduler / provider uncertainty**
+- WhatsApp Business API can use the existing normalized channel contract.
+- Voice AI and telephony can use the same intent, validation, slot-selection, and explicit-confirmation controls.
+- A production CRM or dealer-management system can replace the Airtable adapter.
+- Real workshop capacity, advisor calendars, bay skills, and scheduling providers can replace deterministic service slots.
+- Signed webhooks, RBAC, managed secrets, queue/outbox delivery, observability, PII controls, load testing, and incident runbooks are required before production use.
 
-`explicit confirmation -> provider timeout -> no fake booking success -> details preserved -> recovery work item -> same idempotency key retried -> one booking after recovery`
+WhatsApp and voice change the channel interface. They do not change the authority model.
 
-The key invariant is: **uncertainty never becomes a reassuring but unverified customer claim.**
+## Verification and local run
 
-## Production extension
+The CI workflow compiles source, runs Ruff, validates all workflow exports, scans tracked source and Git history for secrets, runs the test suite, and builds the container image on pushes and pull requests.
 
-The prototype is intentionally narrow in infrastructure, not in architecture. With approved production credentials, the same boundaries can extend to:
-
-- **WhatsApp Business API** as another inbound / outbound channel adapter
-- **Voice AI and telephony** wrapping the same intent, validation, slot and confirmation contracts
-- **CRM / DMS integration** through HubSpot, Zoho, Salesforce, an in-house CRM, or dealership systems
-- real workshop capacity, advisor skills, bays and scheduling calendars
-- signed webhooks, enterprise identity / RBAC, managed secrets and formal PII controls
-- queue / outbox-backed delivery, observability export, load testing and incident runbooks
-
-Voice or WhatsApp would change the interface, not the authority model.
-
-## Verification
-
-At the current final commit, CI verifies:
-
-```text
-Compile                  passed
-Ruff                     passed
-n8n workflow exports     8 validated
-Secret / history scan    passed
-Tests                    61 passed
-Docker image build       passed
-```
-
-NVIDIA NIM is configured locally through the provider adapter in `app/providers/nim.py`; the model has a bounded language role and does not own transactional authority.
-
-## Run locally
-
-Requirements: Docker with Compose. Python 3.11+ and `uv` are useful for host-side development checks.
-
-```bash
+~~~bash
 git clone https://github.com/kabbersokhi-boop/customer-ops-ai.git
 cd customer-ops-ai
 cp .env.example .env
 docker compose up -d --build
-```
 
-For the controlled demo environment:
-
-```bash
 make demo-ready
 make demo-reset
-```
-
-Useful verification commands:
-
-```bash
 make verify
 make eval
 make orchestration-eval
 make adversarial-eval
 make providers
 docker build .
-```
+~~~
 
-## Scope
-
-This repository is a portfolio reference implementation, not a Toyota product, not a TSG production deployment, and not a claim that synthetic tests establish production readiness.
-
-A real rollout still requires production identity, security and privacy review, managed infrastructure, signed channel webhooks, production DMS / scheduler / messaging adapters, queue-backed delivery, formal observability, load testing, operational ownership and incident procedures.
+**make verify** runs linting, workflow validation, the history-aware secret scan, and tests. The live provider and orchestration commands require the corresponding local credentials and published n8n webhooks.
 
 ## Repository map
 
-```text
+~~~text
 app/
-  main.py                         HTTP and demo-page boundary
   demo_world.py                   deterministic synthetic operating world
   providers/nim.py                NVIDIA NIM provider boundary
-  providers/                      CRM / provider adapters
-  services/service_scheduling.py  grounded service availability and state
-  services/appointments.py        revalidation, transaction and idempotency
+  providers/airtable.py           Airtable CRM adapter
   services/agent.py               bounded conversation routing
+  services/service_scheduling.py  grounded service availability and state
+  services/appointments.py        revalidation, transactions, and idempotency
   services/ops.py                 manager metrics and intervention state
-  static/customer.html            customer journey
+  static/customer.html            customer service journey
   static/index.html               manager operations workspace
 n8n/                              eight workflow exports
-scripts/reset_demo.py             guarded DB / CRM reset
-scripts/                          verification, eval and provider checks
-tests/                            behavior, failure and replay contracts
-docs/                             architecture, demo world and evidence
-```
+scripts/reset_demo.py             guarded database and CRM reset
+tests/                            behavior, safety, replay, and integration contracts
+docs/evidence/final/              original final walkthrough screenshots
+~~~
 
-See [`docs/evidence/README.md`](docs/evidence/README.md) for screenshot provenance and the final live-walkthrough evidence set.
+See [docs/evidence/README.md](docs/evidence/README.md) for screenshot provenance and capture notes.
