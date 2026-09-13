@@ -30,6 +30,8 @@ SERVICE_STRONG_TERMS = [
     "warning light",
     "check engine",
     "engine light",
+    "noise",
+    "strange sound",
     "breakdown",
     "broke down",
     "broken down",
@@ -55,6 +57,11 @@ SERVICE_STRONG_TERMS = [
     "shaking",
     "leak",
     "leaking",
+    "not cooling",
+    "accident",
+    "collision",
+    "dent",
+    "dented",
     "awaaz",
 ]
 
