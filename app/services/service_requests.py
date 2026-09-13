@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import AuditEvent, ServiceRequest
+from app.models import AuditEvent, CustomerProfile, ServiceRequest
 from app.services.leads import get_or_create_customer
 
 
@@ -19,7 +19,8 @@ def infer_urgency(message: str) -> str:
 def extract_preferred_time(message: str) -> str | None:
     low = message.lower()
     days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-    day = next((value for value in days if value in low), None)
+    matches = [(low.find(value), value) for value in days if value in low]
+    day = min(matches)[1] if matches else None
     period = next((value for value in ["morning", "afternoon", "evening"] if value in low), None)
     if day and period:
         return f"{day.title()} {period}"
@@ -47,6 +48,21 @@ def create_service_request(
             return existing, False
 
     customer = get_or_create_customer(db, name, phone)
+    if vehicle_model or registration:
+        profile = db.scalar(select(CustomerProfile).where(CustomerProfile.customer_id == customer.id))
+        if not profile:
+            profile = CustomerProfile(
+                customer_id=customer.id,
+                vehicle_model=vehicle_model,
+                registration=registration,
+            )
+            db.add(profile)
+        else:
+            if vehicle_model:
+                profile.vehicle_model = vehicle_model
+            if registration:
+                profile.registration = registration
+
     request = ServiceRequest(
         customer_id=customer.id,
         source_event_id=event_id,
