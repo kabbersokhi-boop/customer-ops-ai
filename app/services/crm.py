@@ -134,6 +134,15 @@ async def sync_activity(db: Session, activity: Interaction) -> dict:
 
 
 async def sync_appointment(db: Session, appointment: Appointment) -> dict:
+    # Contact details can be confirmed at booking time. The appointment service
+    # persists those changes to PostgreSQL first; refresh the related customer
+    # projection before syncing the appointment so Airtable cannot stay stale.
+    lead = db.get(Lead, appointment.lead_id)
+    if lead:
+        customer = db.get(Customer, lead.customer_id)
+        if customer:
+            await sync_customer(db, customer)
+
     fields = {
         "Appointment ID": str(appointment.id),
         "Lead ID": str(appointment.lead_id),
