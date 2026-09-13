@@ -4,7 +4,19 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.time import utcnow
-from app.models import Appointment, ApprovalRequest, AuditEvent, CrmSync, Customer, Interaction, Lead, SystemState
+from app.models import (
+    Appointment,
+    ApprovalRequest,
+    AuditEvent,
+    CrmSync,
+    Customer,
+    CustomerProfile,
+    Interaction,
+    Lead,
+    ServiceBookingContext,
+    ServiceRequest,
+    SystemState,
+)
 from app.providers.airtable import AirtableCRM, AirtableProviderError, AirtableRecord
 
 
@@ -84,12 +96,21 @@ async def _run_sync(
 
 
 async def sync_customer(db: Session, customer: Customer) -> dict:
+    profile = db.scalar(select(CustomerProfile).where(CustomerProfile.customer_id == customer.id))
+    last_interaction = db.scalar(
+        select(Interaction).where(Interaction.customer_id == customer.id).order_by(Interaction.created_at.desc()).limit(1)
+    )
     fields = {
         "Customer ID": str(customer.id),
         "Name": customer.name,
         "Phone": customer.phone,
         "Email": customer.email or "",
         "Created At": customer.created_at.isoformat(),
+        "Vehicle": profile.vehicle_model if profile and profile.vehicle_model else "",
+        "Registration": profile.registration if profile and profile.registration else "",
+        "Preferred Branch": profile.preferred_branch if profile else "",
+        "Last Interaction": last_interaction.created_at.isoformat() if last_interaction else "",
+        "Current Status": profile.current_status if profile else "ACTIVE",
     }
     crm = AirtableCRM()
     return await _run_sync(db, "customer", str(customer.id), lambda: crm.sync_customer(fields))
@@ -138,10 +159,18 @@ async def sync_appointment(db: Session, appointment: Appointment) -> dict:
     # persists those changes to PostgreSQL first; refresh the related customer
     # projection before syncing the appointment so Airtable cannot stay stale.
     lead = db.get(Lead, appointment.lead_id)
+    customer = None
+    profile = None
+    service_request = None
     if lead:
         customer = db.get(Customer, lead.customer_id)
         if customer:
             await sync_customer(db, customer)
+            profile = db.scalar(select(CustomerProfile).where(CustomerProfile.customer_id == customer.id))
+    if appointment.kind == "service":
+        context = db.scalar(select(ServiceBookingContext).where(ServiceBookingContext.lead_id == appointment.lead_id))
+        if context:
+            service_request = db.get(ServiceRequest, context.service_request_id)
 
     fields = {
         "Appointment ID": str(appointment.id),
@@ -152,6 +181,19 @@ async def sync_appointment(db: Session, appointment: Appointment) -> dict:
         "Scheduled For": appointment.scheduled_for.isoformat(),
         "Status": appointment.status,
         "Idempotency Key": appointment.idempotency_key,
+        "Customer": customer.name if customer else "",
+        "Vehicle": (
+            service_request.vehicle_model
+            if service_request and service_request.vehicle_model
+            else profile.vehicle_model
+            if profile and profile.vehicle_model
+            else ""
+        ),
+        "Service Request": service_request.issue_summary[:500] if service_request else "",
+        "Assigned Advisor": "Unassigned",
+        "Attendance": "Scheduled",
+        "CRM Update State": "Synchronized",
+        "Next Action": "Prepare service reception" if appointment.kind == "service" else "Confirm test drive",
     }
     crm = AirtableCRM()
     return await _run_sync(

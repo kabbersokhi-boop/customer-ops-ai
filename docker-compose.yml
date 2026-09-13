@@ -46,8 +46,11 @@ services:
       N8N_APPOINTMENT_WEBHOOK_URL: ${N8N_APPOINTMENT_WEBHOOK_URL:-}
       N8N_UI_BASE_URL: ${N8N_UI_BASE_URL:-}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      DEMO_CONTROLS_ENABLED: ${DEMO_CONTROLS_ENABLED:-false}
     ports:
       - "127.0.0.1:8000:8000"
+    volumes:
+      - ./.demo-backups:/app/.demo-backups
     command: ["sh", "-c", "python scripts/seed_demo.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     depends_on:
       postgres:

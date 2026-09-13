@@ -1,10 +1,13 @@
-.PHONY: up down seed test lint workflows secret-scan verify eval orchestration-eval adversarial-eval providers demo-ready logs clean
+.PHONY: up down seed demo-reset test lint workflows secret-scan verify eval orchestration-eval adversarial-eval providers demo-ready logs clean
 
 up:
 	docker compose up -d --build
 
 seed:
 	docker compose exec api python scripts/seed_demo.py
+
+demo-reset: up
+	docker compose exec -T api python scripts/reset_demo.py --database --airtable --confirm RESET_DEMO
 
 down:
 	docker compose down

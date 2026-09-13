@@ -17,7 +17,16 @@ def test_schema_plan_adds_only_missing_fields():
         }
     ]
     plan = build_plan(existing, {"Customers": TABLE_SCHEMAS["Customers"]})
-    assert [operation.field["name"] for operation in plan] == ["Phone", "Email", "Created At"]
+    assert [operation.field["name"] for operation in plan] == [
+        "Phone",
+        "Email",
+        "Created At",
+        "Vehicle",
+        "Registration",
+        "Preferred Branch",
+        "Last Interaction",
+        "Current Status",
+    ]
     assert all(operation.action == "create_field" for operation in plan)
     assert all(operation.table_id == "tblCustomers" for operation in plan)
 
