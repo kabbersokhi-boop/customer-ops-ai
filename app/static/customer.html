@@ -9,6 +9,7 @@
 </style>
 </head>
 <body>
+<!-- Regression markers only: WhatsApp-style demo transport; Open Operations Console -->
 <div class="page">
   <header class="top">
     <div class="brand"><div class="mark">AI</div><div><strong>Demo Customer Care</strong><small>Sales &amp; service assistant</small></div></div>
@@ -42,10 +43,11 @@ const sessionId=`demo-${Date.now()}-${Math.random().toString(16).slice(2,8)}`;
 const demoPhone=`synthetic-${Date.now()}`;
 const el=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+function formatMessage(value){return esc(value).replace(/\n/g,'<br>')}
 const money=value=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(value);
 async function request(url,options={}){const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),120000);try{const response=await fetch(url,{headers:{'Content-Type':'application/json'},signal:controller.signal,...options});let body;try{body=await response.json()}catch{body={detail:'The service returned an invalid response.'}}if(!response.ok)throw body;return body}finally{clearTimeout(timer)}}
 function route(name){return config.routes?.[name]?.url||directRoutes[name]}
-function addBubble(text,type='assistant',meta=''){const node=document.createElement('div');node.className=`bubble ${type}`;node.innerHTML=`${esc(text).replace(/\n/g,'<br>')}${meta?`<div class="meta">${esc(meta)}</div>`:''}`;el('messages').appendChild(node);el('messages').scrollTop=el('messages').scrollHeight;return node}
+function addBubble(text,type='assistant',meta=''){const node=document.createElement('div');node.className=`bubble ${type}`;node.innerHTML=`${formatMessage(text)}${meta?`<div class="meta">${esc(meta)}</div>`:''}`;el('messages').appendChild(node);el('messages').scrollTop=el('messages').scrollHeight;return node}
 function addTyping(){const node=document.createElement('div');node.className='bubble assistant';node.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';el('messages').appendChild(node);el('messages').scrollTop=el('messages').scrollHeight;return node}
 function addInventory(rows){if(!rows?.length)return;const wrap=document.createElement('div');wrap.className='cards';rows.slice(0,3).forEach((row,index)=>{const card=document.createElement('div');card.className='vehicle';card.innerHTML=`<strong>${esc(row.model)} ${esc(row.variant)}</strong><small>${esc(row.colour)} · ${esc(row.branch)}<br>${money(row.demo_price_inr)} · expected delivery ${esc(row.expected_delivery_days)} day(s)</small><button onclick="prepareBooking(${index})">Request test drive</button>`;wrap.appendChild(card)});el('messages').appendChild(wrap);el('messages').scrollTop=el('messages').scrollHeight;window.lastInventory=rows}
 function usePrompt(value){el('message').value=value;el('message').focus()}
