@@ -33,15 +33,16 @@ Variant, branch, colour, small price variation, availability, test-drive flag, a
 
 The first seed also creates:
 
-- 60 synthetic customers
-- 60 sales leads
-- 60 inbound interactions
-- 16 initial test-drive appointments
-- 5 pending discount approvals
-- 12 open service cases, including 2 high-priority examples
-- 3 available system-state flags: inventory, CRM, and messaging
+- 8 synthetic customers and operator-relevant interactions
+- 5 service requests, including one safety-sensitive case
+- 3 service appointments scheduled for today
+- 1 customer awaiting service confirmation
+- 1 pending discount approval and secondary sales/handoff examples
+- 4 available system-state flags: inventory, CRM, messaging, and scheduler
 
-Subsequent demo/eval runs add records; the seed is idempotent and never silently resets operational history.
+Service availability is structured in PostgreSQL. The rolling interview fixture keeps Gurugram full on Saturday, Gurugram available Monday at 10:00 and 14:00, and Noida available Saturday at 14:30.
+
+Subsequent demo runs add records. `make demo-reset` is the only intentional reset path; it requires an explicit confirmation phrase, rejects non-local databases, and snapshots application-owned Airtable tables before cleanup.
 
 ## Explicitly outside scope
 

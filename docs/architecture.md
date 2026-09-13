@@ -17,12 +17,12 @@ flowchart TB
     subgraph Control
       A[FastAPI typed API]
       G[Grounding guard]
-      P[Policy and idempotency]
+      P[Policy, slot recheck and idempotency]
     end
     subgraph Providers
       L[NVIDIA NIM]
       R[Airtable CRM]
-      D[(PostgreSQL synthetic DMS)]
+      D[(PostgreSQL operational truth)]
     end
     M --> N
     V --> N
@@ -51,11 +51,15 @@ The customer simulator may send a typed `conversation_lead_id` after the first r
 
 Customer text is untrusted. NVIDIA NIM can formulate a response and request an allow-listed read-only inventory tool. Tool arguments pass schema validation. The model receives neither database credentials nor mutation tools.
 
-Greeting, unclear input, unsupported vehicles, warranty/policy questions, unrepresented specifications, finance-rate questions, service safety, human handoff, and discount authority are bounded before model generation. This is intentional: a general-purpose model is not an approved business knowledge source.
+Greeting, unclear input, unsupported vehicles, warranty/policy questions, unrepresented specifications, finance-rate questions, service safety, human handoff, and discount authority are bounded before model generation. Service availability is read from structured state. This is intentional: a general-purpose model is not an approved business knowledge source.
 
 ### Mutation boundary
 
-Bookings, approval decisions, recovery state, and failure simulation are typed application commands. Booking and inbound-event retries carry idempotency keys. Inventory can be rechecked at booking time to catch state changes.
+Bookings, approval decisions, recovery state, and failure simulation are typed application commands. Booking and inbound-event retries carry idempotency keys. Inventory and service-slot capacity are rechecked at booking time. Service capacity is locked before mutation so a conversational offer is never treated as booking authority.
+
+### Recovery boundary
+
+A demo-scoped scheduler timeout creates a durable `booking_recoveries` row containing the requested command and its idempotency key. It creates no appointment and returns an explicit unconfirmed state. A manager retry reuses the same command; success resolves the work item and later retries return the original appointment.
 
 ### DMS boundary
 
@@ -63,7 +67,7 @@ Inventory is queried from PostgreSQL through one bounded service. When disabled,
 
 ### CRM boundary
 
-Airtable is an adapter behind provider-neutral mappings. Customer, lead, activity, appointment, and approval records are upserted. Provider errors are categorized and stored without replacing domain truth.
+Airtable is an adapter behind provider-neutral mappings. Customer, lead, activity, appointment, and approval records are upserted. Business-facing fields are derived from authoritative state. Provider errors are categorized and stored without replacing domain truth.
 
 ### Orchestration boundary
 

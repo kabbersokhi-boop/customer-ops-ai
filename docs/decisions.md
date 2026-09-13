@@ -38,13 +38,13 @@
 
 ## ADR-007 — Zero-build browser surfaces
 
-**Decision:** Keep two server-hosted HTML applications with no frontend build pipeline: a customer simulator and an operator console.
+**Decision:** Keep two server-hosted HTML applications with no frontend build pipeline: a customer service experience and a manager operations dashboard.
 
 **Why:** It reduces demo setup and supply-chain surface while still exposing operational state. A production console would use authenticated routes and a maintained frontend stack.
 
 ## ADR-008 — Separate customer and operator surfaces
 
-**Decision:** Serve a dedicated `/customer` messaging experience and keep `/` as the internal Operations Console.
+**Decision:** Serve a dedicated `/customer` messaging experience and keep `/` as the manager Service Operations Dashboard.
 
 **Why:** A customer conversation and an operator control plane have different information needs. Separation makes the business journey obvious without hiding execution, audit, provider, or governance detail from the interviewer.
 
@@ -53,3 +53,9 @@
 **Decision:** Refuse warranty, arbitrary specification, and live finance-rate answers until approved sources exist.
 
 **Why:** Adding generic documents or model memory for portfolio optics would weaken trust. The operational-agent story is stronger when missing authority is explicit. Approved policy retrieval can be added later behind the same typed source boundary.
+
+## ADR-010 — Structured service capacity and recovery work
+
+**Decision:** Keep service slots, conversation state, booking capacity, and failed-confirmation recovery in PostgreSQL-backed domain services.
+
+**Why:** n8n should route the command, not decide whether a slot exists. Booking rechecks capacity under a database lock; scheduler failure preserves one idempotent command as manager-visible work without creating or claiming an appointment.

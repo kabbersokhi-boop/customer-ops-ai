@@ -49,7 +49,7 @@ The unit/API suite runs against isolated SQLite state. The live demo eval runs t
 - Live Docker/PostgreSQL checks: 11/11 passed
 - n8n export validation: 8 passed
 - n8n 2.38.7 CLI import: 8 passed
-- n8n Manager Briefing runtime execution: passed against the live Compose API
+- n8n Manager Operations Briefing runtime execution: passed against the live Compose API
 - n8n-first runtime eval: inbound and appointment webhooks passed with visible execution IDs; duplicate booking count was one
 - NVIDIA NIM live tool-call preflight: passed with validated arguments on `z-ai/glm-5.3-flash`
 - Airtable live replay proof: one Lead row, two Activity rows, and one Appointment row after duplicate commands
