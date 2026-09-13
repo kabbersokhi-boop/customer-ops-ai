@@ -38,6 +38,13 @@ class AppointmentCreate(BaseModel):
     stock_id: str | None = Field(default=None, max_length=64)
     scheduled_for: datetime
     idempotency_key: str = Field(min_length=4, max_length=120)
+    contact_name: str | None = Field(default=None, min_length=2, max_length=120)
+    contact_phone: str | None = Field(default=None, min_length=6, max_length=30)
+    contact_email: str | None = Field(
+        default=None,
+        max_length=180,
+        pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$",
+    )
 
 
 class DiscountRequest(BaseModel):
