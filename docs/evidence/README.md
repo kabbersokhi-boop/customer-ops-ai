@@ -1,6 +1,6 @@
-# Verified demo evidence
+# Archived pre-pivot demo evidence
 
-These files preserve a sanitized, browser-content-only replay of a successful end-to-end run. They make the repository demonstrable when an external dependency is unavailable, without presenting recorded output as a currently live service.
+These files preserve a sanitized, browser-content-only replay from the earlier sales-oriented interface. They prove the integration path existed at the recorded commit, but they are **not current screenshots of the service-operations experience** and should not be used in the interview deck. Capture the replacement set in `docs/demo-script.md` after the final hands-on run.
 
 ## Provenance
 
@@ -26,7 +26,7 @@ Execution timestamps and durations in `n8n-execution.png` were read from n8n's l
 ## Files
 
 - `customer-experience.png` — the distinct customer UI showing n8n execution 76, live guarded NIM, verified synthetic inventory, and Airtable sync
-- `operations-console.png` — internal operations state, manager exceptions, appointment queue, provider health, and n8n-ready route
+- `operations-console.png` — the superseded engineering-oriented operations console
 - `n8n-execution.png` — sanitized workflow and execution-store evidence for executions 76–78
 - `customer-flow.gif` — lightweight animated replay assembled only from the sanitized browser-content frames above and booking/replay frames
 
@@ -37,7 +37,7 @@ make verify
 # Ruff: passed
 # n8n exports: 8 validated
 # secret/history scan: passed
-# pytest: 42 passed
+# pytest: 42 passed at the archived commit
 
 make demo-ready
 # FastAPI/PostgreSQL/pages/seed/n8n webhooks: passed
@@ -55,7 +55,7 @@ make adversarial-eval
 # 16/16 customer inputs passed through the configured n8n route
 ~~~
 
-The screenshots and every GIF source frame were visually inspected before commit. They contain no desktop, panel,
+These archived screenshots and every GIF source frame were visually inspected before commit. They contain no desktop, panel,
 system tray, personal browser profile, bookmarks, notifications, account avatar, API key, Airtable PAT, NVIDIA key,
 n8n credential, cookie, email, terminal, local path, or real customer information. Any visible name, phone-like value,
 vehicle, stock ID, price, or operational count comes from the deterministic synthetic seed.

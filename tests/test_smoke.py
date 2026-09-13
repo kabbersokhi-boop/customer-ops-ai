@@ -130,12 +130,14 @@ def test_customer_demo_is_distinct_truthful_and_uses_discovered_routes():
     response = client.get("/customer")
     assert response.status_code == 200
     page = response.text
-    assert "WhatsApp-style demo transport" in page
-    assert "not affiliated with Toyota" in page
+    assert "Service Operations Demo" in page
+    assert "Service Concierge" in page
+    assert "Demo environment · synthetic vehicle and customer data" in page
+    assert "Book a service" in page
+    assert "Manager dashboard" in page
     assert "request('/api/demo/config')" in page
     assert "conversation_lead_id" in page
     assert "formatMessage" in page
-    assert "Open Operations Console" in page
 
 
 def test_lead_intake_extracts_business_context():

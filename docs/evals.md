@@ -45,14 +45,14 @@ The unit/API suite runs against isolated SQLite state. The live demo eval runs t
 
 ## Latest local result
 
-- Automated tests: 42 passed
+- Automated tests: 52 passed
 - Live Docker/PostgreSQL checks: 11/11 passed
 - n8n export validation: 8 passed
 - n8n 2.38.7 CLI import: 8 passed
 - n8n Manager Operations Briefing runtime execution: passed against the live Compose API
 - n8n-first runtime eval: inbound and appointment webhooks passed with visible execution IDs; duplicate booking count was one
 - NVIDIA NIM live tool-call preflight: passed with validated arguments on `z-ai/glm-5.3-flash`
-- Airtable live replay proof: one Lead row, two Activity rows, and one Appointment row after duplicate commands
+- Airtable live projection proof: booking contact and appointment projections passed; the guarded reset restored the 8/8/8/3/1 interview baseline
 - Live customer adversarial suite: 16/16 expected outcomes through the configured route
 
 These numbers are regression results, not claims about model accuracy in production. There is no statistically meaningful precision/recall score yet because the repository does not ship a labeled real-customer corpus.
