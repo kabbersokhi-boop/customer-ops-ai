@@ -16,6 +16,10 @@ from app.services.conversation import assess_message
         "my steering is acting up",
         "flat tyre on my car",
         "the vehicle is shaking and making a rattling noise",
+        "my car is making a strange noise",
+        "the AC is not cooling",
+        "my car was in an accident",
+        "there is a dent on the vehicle",
     ],
 )
 def test_natural_vehicle_trouble_routes_to_service(message: str):
@@ -38,8 +42,16 @@ def test_generic_problem_language_does_not_override_clear_purchase_intent(messag
     assert assessment.request_type in {"sales_discovery", "inventory_enquiry"}
 
 
-def test_service_package_stays_policy_question_not_vehicle_repair():
-    assessment = assess_message("What is included in the service package?", has_supported_model=False)
+@pytest.mark.parametrize(
+    "message",
+    [
+        "What is included in the service package?",
+        "What warranty do I get with the car?",
+        "Is roadside assistance included?",
+    ],
+)
+def test_policy_questions_do_not_turn_into_vehicle_repair(message: str):
+    assessment = assess_message(message, has_supported_model=False)
     assert assessment.intent == "sales"
     assert assessment.request_type == "unverified_policy_question"
 
@@ -47,6 +59,15 @@ def test_service_package_stays_policy_question_not_vehicle_repair():
 def test_explicit_repair_language_wins_even_if_purchase_words_are_present():
     assessment = assess_message(
         "I was going to buy another car, but my current vehicle has brake trouble and needs repair",
+        has_supported_model=False,
+    )
+    assert assessment.intent == "service"
+    assert assessment.request_type == "service_request"
+
+
+def test_breakdown_with_roadside_language_is_treated_as_active_service_concern():
+    assessment = assess_message(
+        "My car broke down and I need roadside assistance",
         has_supported_model=False,
     )
     assert assessment.intent == "service"
