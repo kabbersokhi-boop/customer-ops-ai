@@ -100,7 +100,13 @@ def available_slots(
     return list(db.scalars(stmt.order_by(ServiceSlot.starts_at, ServiceSlot.branch).limit(limit)).all())
 
 
-def availability_result(db: Session, *, branch: str, requested_date: date) -> dict:
+def availability_result(
+    db: Session,
+    *,
+    branch: str,
+    requested_date: date,
+    fallback_date: date | None = None,
+) -> dict:
     exact = available_slots(db, branch=branch, requested_date=requested_date)
     same_day_other_branch = [
         slot for slot in available_slots(db, requested_date=requested_date) if slot.branch != branch
@@ -108,6 +114,10 @@ def availability_result(db: Session, *, branch: str, requested_date: date) -> di
     future_same_branch = [
         slot for slot in available_slots(db, branch=branch) if slot.starts_at.date() != requested_date
     ]
+    if fallback_date:
+        preferred_fallback = [slot for slot in future_same_branch if slot.starts_at.date() == fallback_date]
+        other_future = [slot for slot in future_same_branch if slot.starts_at.date() != fallback_date]
+        future_same_branch = preferred_fallback + other_future
     return {
         "requested": {"branch": branch, "date": requested_date.isoformat()},
         "available": [slot_dict(slot) for slot in exact],
@@ -121,17 +131,53 @@ def extract_branch(message: str) -> str | None:
     return next((value for token, value in BRANCH_ALIASES.items() if token in low), None)
 
 
+def extract_requested_days(message: str) -> list[str]:
+    low = message.lower()
+    found: list[tuple[int, str]] = []
+    for day_name in WEEKDAYS:
+        for match in re.finditer(rf"\b{day_name}\b", low):
+            found.append((match.start(), day_name))
+    return [day_name for _, day_name in sorted(found)]
+
+
 def extract_requested_date(message: str) -> date | None:
     low = message.lower()
-    if "tomorrow" in low:
-        return demo_today() + timedelta(days=1)
-    if "today" in low:
-        return demo_today()
-    for day_name in WEEKDAYS:
-        if day_name in low:
-            return next_weekday(day_name)
+    relative = []
+    for token, offset in (("today", 0), ("tomorrow", 1)):
+        match = re.search(rf"\b{token}\b", low)
+        if match:
+            relative.append((match.start(), demo_today() + timedelta(days=offset)))
+    weekday_matches = []
+    for day_name in extract_requested_days(message):
+        match = re.search(rf"\b{day_name}\b", low)
+        if match:
+            weekday_matches.append((match.start(), next_weekday(day_name)))
+    candidates = relative + weekday_matches
+    if candidates:
+        return min(candidates, key=lambda item: item[0])[1]
     iso = re.search(r"\b(20\d{2}-\d{2}-\d{2})\b", low)
     return date.fromisoformat(iso.group(1)) if iso else None
+
+
+def looks_like_service_followup(message: str) -> bool:
+    low = " ".join(message.lower().split())
+    if extract_requested_days(message):
+        return True
+    if re.search(r"\b(?:today|tomorrow)\b|\b20\d{2}-\d{2}-\d{2}\b", low):
+        return True
+    if extract_branch(message):
+        return True
+    if re.search(r"\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b|\b(?:[01]?\d|2[0-3]):[0-5]\d\b", low):
+        return True
+    if any(token in low for token in ["morning", "afternoon", "evening", "another slot", "different slot"]):
+        return True
+    if any(token in low for token in ["first option", "second option", "earlier one", "later one", "that one"]):
+        return True
+    if "appointment" in low and any(token in low for token in ["change", "move", "reschedule"]):
+        return True
+    if re.search(r"\b(?:10|2)\b", low) and any(token in low for token in ["works", "work for me", "fine", "okay", "ok"]):
+        return True
+    return False
 
 
 def extract_requested_hour(message: str) -> tuple[int, int] | None:
@@ -190,6 +236,8 @@ def handle_service_booking(
     urgency: str,
     event_id: str,
     vehicle_model: str | None = None,
+    requested_day_hint: str | None = None,
+    fallback_day_hint: str | None = None,
 ) -> dict:
     context = get_context(db, lead_id)
     service_request = db.get(ServiceRequest, context.service_request_id) if context else None
@@ -211,6 +259,8 @@ def handle_service_booking(
         )
         db.add(context)
         db.flush()
+    elif vehicle_model and not service_request.vehicle_model:
+        service_request.vehicle_model = vehicle_model
 
     if urgency in {"HIGH", "CRITICAL"} or service_request.urgency in {"HIGH", "CRITICAL"}:
         service_request.stage = "NEEDS_ADVISOR"
@@ -236,13 +286,22 @@ def handle_service_booking(
         }
 
     branch = extract_branch(message) or context.requested_branch
-    requested_date = extract_requested_date(message)
+    requested_date = (
+        next_weekday(requested_day_hint)
+        if requested_day_hint and requested_day_hint.lower() in WEEKDAYS
+        else extract_requested_date(message)
+    )
     if requested_date:
         context.requested_date = datetime.combine(requested_date, time.min)
     elif context.requested_date:
         requested_date = context.requested_date.date()
     context.requested_branch = branch
     hour = extract_requested_hour(message)
+    fallback_date = None
+    if fallback_day_hint and fallback_day_hint.lower() in WEEKDAYS:
+        fallback_date = next_weekday(fallback_day_hint)
+        if requested_date and fallback_date == requested_date:
+            fallback_date = None
 
     if not requested_date:
         context.status = "COLLECTING_DATE"
@@ -254,7 +313,7 @@ def handle_service_booking(
             "booking": {"status": context.status, "confirmed": False, "source": "postgresql_service_slots"},
         }
 
-    result = availability_result(db, branch=branch, requested_date=requested_date)
+    result = availability_result(db, branch=branch, requested_date=requested_date, fallback_date=fallback_date)
     candidates = result["available"]
     if hour:
         candidates = [
