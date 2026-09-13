@@ -2,13 +2,14 @@ from app.core.config import settings
 from app.services.orchestration import demo_orchestration_config
 
 
-def test_demo_console_discovers_and_displays_n8n_execution_route():
+def test_demo_console_keeps_orchestration_proof_behind_technical_details():
     markup = open("app/static/index.html", encoding="utf-8").read()
     assert "/api/demo/config" in markup
-    assert "businessRoute('inbound')" in markup
-    assert "businessRoute('appointment')" in markup
-    assert "orchestration.execution_id" in markup
-    assert "Open ${esc(label)} n8n execution" in markup
+    assert "Technical details" in markup
+    assert "openTrace" in markup
+    assert "orchestrationTrace" in markup
+    assert "/api/ops/crm-sync" in markup
+    assert "/api/ops/audit" in markup
 
 
 def test_direct_mode_uses_fastapi_routes(monkeypatch):
