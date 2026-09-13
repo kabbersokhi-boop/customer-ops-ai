@@ -16,6 +16,21 @@ def test_demo_console_keeps_orchestration_proof_behind_technical_details():
     assert "/api/ops/audit" in markup
 
 
+def test_appointment_workflow_forwards_confirmed_contact_fields():
+    workflow = open("n8n/appointment-confirmation.json", encoding="utf-8").read()
+    assert '"name":"contact_name"' in workflow
+    assert '"name":"contact_phone"' in workflow
+    assert '"name":"contact_email"' in workflow
+    assert "Create Idempotent Appointment" in workflow
+
+
+def test_booking_crm_sync_refreshes_customer_projection_before_appointment():
+    source = open("app/services/crm.py", encoding="utf-8").read()
+    assert "customer = db.get(Customer, lead.customer_id)" in source
+    assert "await sync_customer(db, customer)" in source
+    assert source.index("await sync_customer(db, customer)") < source.index('"Appointment ID": str(appointment.id)')
+
+
 def test_direct_mode_uses_fastapi_routes(monkeypatch):
     monkeypatch.setattr(settings, "orchestration_mode", "direct")
     config = demo_orchestration_config()
