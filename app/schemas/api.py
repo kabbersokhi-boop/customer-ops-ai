@@ -26,6 +26,7 @@ class ChannelEvent(BaseModel):
     customer_name: str = Field(min_length=2, max_length=120)
     customer_phone: str = Field(min_length=6, max_length=30)
     text: str = Field(min_length=1, max_length=4000)
+    conversation_lead_id: int | None = Field(default=None, ge=1)
     occurred_at: datetime | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 

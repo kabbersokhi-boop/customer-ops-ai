@@ -1,4 +1,4 @@
-.PHONY: up down seed test lint workflows secret-scan verify eval orchestration-eval providers logs clean
+.PHONY: up down seed test lint workflows secret-scan verify eval orchestration-eval adversarial-eval providers demo-ready logs clean
 
 up:
 	docker compose up -d --build
@@ -30,8 +30,15 @@ eval:
 orchestration-eval:
 	.venv/bin/python scripts/run_orchestration_eval.py
 
+adversarial-eval:
+	.venv/bin/python scripts/run_customer_adversarial_eval.py
+
 providers:
 	.venv/bin/python scripts/verify_live_providers.py
+
+demo-ready: up
+	python3 scripts/demo_ready.py
+	docker compose exec -T api python scripts/verify_live_providers.py
 
 verify: lint workflows secret-scan test
 

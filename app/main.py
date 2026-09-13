@@ -1,12 +1,13 @@
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.time import utcnow
 from app.db.base import Base
 from app.db.session import engine, get_db
+from app.demo_world import demo_world_definition
 from app.models import (
     Appointment,
     ApprovalRequest,
@@ -17,6 +18,7 @@ from app.models import (
     Lead,
     ServiceRequest,
     SystemState,
+    VehicleInventory,
 )
 from app.schemas.api import (
     AppointmentCreate,
@@ -101,6 +103,28 @@ def readiness(db: Session = Depends(get_db)):
 @app.get("/api/demo/config")
 def demo_config():
     return demo_orchestration_config()
+
+
+@app.get("/api/demo/world")
+def demo_world():
+    return demo_world_definition()
+
+
+@app.get("/api/demo/status")
+def demo_status(db: Session = Depends(get_db)):
+    counts = {
+        "inventory": db.scalar(select(func.count()).select_from(VehicleInventory)) or 0,
+        "customers": db.scalar(select(func.count()).select_from(Customer)) or 0,
+        "leads": db.scalar(select(func.count()).select_from(Lead)) or 0,
+        "interactions": db.scalar(select(func.count()).select_from(Interaction)) or 0,
+        "appointments": db.scalar(select(func.count()).select_from(Appointment)) or 0,
+        "pending_approvals": db.scalar(
+            select(func.count()).select_from(ApprovalRequest).where(ApprovalRequest.status == "PENDING")
+        )
+        or 0,
+        "service_requests": db.scalar(select(func.count()).select_from(ServiceRequest)) or 0,
+    }
+    return {"synthetic": True, "counts": counts}
 
 
 @app.post("/api/channels/inbound")
@@ -440,3 +464,8 @@ def ops_crm_sync(limit: int = Query(default=30, ge=1, le=100), db: Session = Dep
 @app.get("/", include_in_schema=False)
 def demo_ui():
     return FileResponse("app/static/index.html")
+
+
+@app.get("/customer", include_in_schema=False)
+def customer_demo_ui():
+    return FileResponse("app/static/customer.html")

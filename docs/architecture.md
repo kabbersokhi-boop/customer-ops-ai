@@ -45,9 +45,13 @@ flowchart TB
 
 Every transport becomes one normalized event with a provider event ID. A durable receipt stores the original response, so a replay returns the prior business result without duplicating interactions or CRM work.
 
+The customer simulator may send a typed `conversation_lead_id` after the first response. The API accepts it only when it belongs to the same customer identity, enriches the existing lead with newly supplied details, and still gives each inbound event its own replay key and interaction record.
+
 ### LLM boundary
 
 Customer text is untrusted. NVIDIA NIM can formulate a response and request an allow-listed read-only inventory tool. Tool arguments pass schema validation. The model receives neither database credentials nor mutation tools.
+
+Greeting, unclear input, unsupported vehicles, warranty/policy questions, unrepresented specifications, finance-rate questions, service safety, human handoff, and discount authority are bounded before model generation. This is intentional: a general-purpose model is not an approved business knowledge source.
 
 ### Mutation boundary
 
@@ -74,6 +78,7 @@ n8n normalizes, routes, schedules, retries, and hands off to delivery providers.
 | DMS unavailable | Preserve lead; suppress stock claims |
 | CRM unavailable | Preserve domain state; record failed sync |
 | NIM timeout/error | Deterministic reply with visible provider code |
+| n8n browser route unavailable | No hidden retry; customer UI offers explicit direct fallback |
 | Malformed tool arguments | Reject tool call; expose trace |
 | Model claims a booking/discount | Replace with deterministic response |
 | Vehicle changes before booking | Reject with a structured conflict |

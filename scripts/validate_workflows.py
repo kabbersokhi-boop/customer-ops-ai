@@ -52,6 +52,10 @@ def main() -> int:
                 parameters = nodes_by_name[node_name].get("parameters", {})
                 if parameters.get("includeOtherFields") is not True:
                     raise SystemExit(f"{path.name}: {node_name} must preserve the FastAPI response")
+        if path.name == "inbound-lead.json" and "conversation_lead_id" not in serialized:
+            raise SystemExit(f"{path.name}: normalized events must preserve typed conversation continuity")
+        if path.name == "inbound-lead.json" and '"timeout": 120000' not in serialized:
+            raise SystemExit(f"{path.name}: inbound control-layer timeout must cover the governed provider budget")
         for node_name in RESPONSE_PASSTHROUGH_NODES.get(path.name, set()):
             parameters = nodes_by_name[node_name].get("parameters", {})
             if parameters.get("includeOtherFields") is not True:

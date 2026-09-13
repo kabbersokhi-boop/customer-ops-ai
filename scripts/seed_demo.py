@@ -4,6 +4,7 @@ from datetime import timedelta
 from app.core.time import utcnow
 from app.db.base import Base
 from app.db.session import SessionLocal, engine
+from app.demo_world import BRANCHES, CATALOG, COLOURS
 from app.models import (
     Appointment,
     ApprovalRequest,
@@ -18,24 +19,6 @@ from app.models import (
 
 random.seed(42)
 
-# Synthetic demo catalogue only. Prices and inventory are intentionally fictional.
-MODELS = {
-    "Fortuner": [("4x2 AT", "Diesel", "Automatic", 3_890_000), ("4x4 AT", "Diesel", "Automatic", 4_350_000)],
-    "Legender": [("4x2 AT", "Diesel", "Automatic", 4_400_000)],
-    "Camry": [("Hybrid", "Hybrid", "e-CVT", 4_850_000)],
-    "Innova Hycross": [("VX Hybrid", "Hybrid", "e-CVT", 3_000_000), ("GX", "Petrol", "CVT", 2_250_000)],
-    "Innova Crysta": [("GX", "Diesel", "Manual", 2_150_000)],
-    "Urban Cruiser Hyryder": [
-        ("V Hybrid", "Hybrid", "e-CVT", 1_950_000),
-        ("G NeoDrive", "Petrol", "Automatic", 1_750_000),
-    ],
-    "Glanza": [("V AMT", "Petrol", "Automatic", 1_050_000)],
-    "Taisor": [("V Turbo AT", "Petrol", "Automatic", 1_350_000)],
-    "Rumion": [("V AT", "Petrol", "Automatic", 1_350_000)],
-    "Hilux": [("High AT", "Diesel", "Automatic", 3_900_000)],
-}
-COLOURS = ["Super White", "Pearl White", "Attitude Black", "Silver Metallic", "Grey Metallic", "Red", "Blue", "Bronze"]
-BRANCHES = ["Gurugram", "New Delhi", "Noida", "Faridabad", "Ghaziabad"]
 FIRST_NAMES = ["Arjun", "Riya", "Kabir", "Meera", "Rohan", "Ananya", "Vikram", "Ishita", "Aditya", "Neha"]
 LAST_NAMES = ["Sharma", "Verma", "Kapoor", "Singh", "Malhotra", "Gupta", "Mehta", "Bansal"]
 
@@ -44,7 +27,7 @@ def seed_inventory(db):
     if db.query(VehicleInventory).count() > 0:
         return
     i = 1
-    for model, variants in MODELS.items():
+    for model, variants in CATALOG.items():
         for _ in range(30):
             variant, fuel, transmission, price = random.choice(variants)
             branch = random.choice(BRANCHES)
@@ -81,7 +64,7 @@ def seed_operations(db):
         )
         db.add(customer)
         db.flush()
-        model = random.choice(list(MODELS))
+        model = random.choice(list(CATALOG))
         score = random.randint(45, 98)
         age_hours = random.randint(2, 120)
         stage = "QUALIFIED" if score >= 70 else "NEW"
@@ -186,23 +169,28 @@ def seed_system_states(db):
             db.add(SystemState(service_name=service, is_available=True))
 
 
-Base.metadata.create_all(bind=engine)
-db = SessionLocal()
-try:
-    seed_inventory(db)
-    seed_operations(db)
-    seed_system_states(db)
-    db.commit()
-    print(
-        "Demo seed ready:",
-        {
-            "inventory": db.query(VehicleInventory).count(),
-            "customers": db.query(Customer).count(),
-            "leads": db.query(Lead).count(),
-            "appointments": db.query(Appointment).count(),
-            "service_requests": db.query(ServiceRequest).count(),
-            "approvals": db.query(ApprovalRequest).count(),
-        },
-    )
-finally:
-    db.close()
+def main() -> None:
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        seed_inventory(db)
+        seed_operations(db)
+        seed_system_states(db)
+        db.commit()
+        print(
+            "Demo seed ready:",
+            {
+                "inventory": db.query(VehicleInventory).count(),
+                "customers": db.query(Customer).count(),
+                "leads": db.query(Lead).count(),
+                "appointments": db.query(Appointment).count(),
+                "service_requests": db.query(ServiceRequest).count(),
+                "approvals": db.query(ApprovalRequest).count(),
+            },
+        )
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    main()

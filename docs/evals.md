@@ -8,6 +8,7 @@ make verify
 docker compose up -d --build
 make eval
 make orchestration-eval  # run with published n8n webhooks and ORCHESTRATION_MODE=n8n
+make adversarial-eval
 ~~~
 
 The unit/API suite runs against isolated SQLite state. The live demo eval runs through HTTP against the Docker Compose API and PostgreSQL. The orchestration eval discovers the same runtime route as the browser, executes inbound and appointment replays through n8n, and verifies one durable booking.
@@ -34,10 +35,17 @@ The unit/API suite runs against isolated SQLite state. The live demo eval runs t
 | Stale recovery replay | One queue transition |
 | DMS restore | Verified search recovers |
 | Manager briefing | Stored-state attention items |
+| Greeting or gibberish | Clarification without unnecessary model use |
+| Budget-only enquiry | Bounded inventory search without a named model |
+| Unsupported vehicle | Explicit catalogue boundary |
+| Warranty/specification/finance question | No answer from unapproved model memory |
+| Multi-turn conversation | Same customer lead enriched safely |
+| Natural-language discount injection | Pending typed approval; no model authority |
+| Free-text booking request | Cannot bypass typed appointment command |
 
 ## Latest local result
 
-- Automated tests: 32 passed
+- Automated tests: 42 passed
 - Live Docker/PostgreSQL checks: 11/11 passed
 - n8n export validation: 8 passed
 - n8n 2.38.7 CLI import: 8 passed
@@ -45,8 +53,11 @@ The unit/API suite runs against isolated SQLite state. The live demo eval runs t
 - n8n-first runtime eval: inbound and appointment webhooks passed with visible execution IDs; duplicate booking count was one
 - NVIDIA NIM live tool-call preflight: passed with validated arguments on `z-ai/glm-5.3-flash`
 - Airtable live replay proof: one Lead row, two Activity rows, and one Appointment row after duplicate commands
+- Live customer adversarial suite: 16/16 expected outcomes through the configured route
 
 These numbers are regression results, not claims about model accuracy in production. There is no statistically meaningful precision/recall score yet because the repository does not ship a labeled real-customer corpus.
+
+The release suite also covers greeting/clarification, budget-only discovery, unsupported vehicles, warranty/specification/finance scope boundaries, multi-turn lead continuity, natural-language discount approval, free-text booking authority, gibberish, and the distinct customer page.
 
 ## What is not measured
 

@@ -4,20 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.time import utcnow
+from app.demo_world import CATALOG
 from app.models import AuditEvent, Customer, Lead
 
-MODELS = [
-    "Fortuner",
-    "Legender",
-    "Camry",
-    "Innova Hycross",
-    "Innova Crysta",
-    "Urban Cruiser Hyryder",
-    "Glanza",
-    "Taisor",
-    "Rumion",
-    "Hilux",
-]
+MODELS = list(CATALOG)
 COLOUR_ALIASES = {
     "super white": "Super White",
     "pearl white": "Pearl White",
@@ -122,10 +112,31 @@ def infer_intent(message: str) -> str:
         return "service"
     if any(term in low for term in support_terms):
         return "support"
-    return "sales"
+    sales_terms = [
+        "car",
+        "vehicle",
+        "suv",
+        "buy",
+        "purchase",
+        "budget",
+        "lakh",
+        "test drive",
+        "book",
+        "appointment",
+        "showroom",
+        "discount",
+        "warranty",
+        "mileage",
+        "finance",
+    ]
+    if extract_model(message) or any(term in low for term in sales_terms):
+        return "sales"
+    return "general"
 
 
 def score_lead(message: str, model: str | None, budget: int | None, timeline_days: int | None) -> int:
+    if infer_intent(message) != "sales":
+        return 0
     score = 25
     low = message.lower()
     if model:
@@ -162,6 +173,7 @@ def intake_lead(
     message: str,
     channel: str,
     event_id: str | None = None,
+    conversation_lead_id: int | None = None,
 ) -> tuple[Lead, bool]:
     if event_id:
         existing = db.scalar(select(Lead).where(Lead.source_event_id == event_id))
@@ -178,6 +190,42 @@ def intake_lead(
     intent = infer_intent(message)
     score = score_lead(message, model, budget, timeline_days) if intent == "sales" else 35
 
+    continued = db.get(Lead, conversation_lead_id) if conversation_lead_id else None
+    if continued and continued.customer_id == customer.id:
+        continued.model_interest = model or continued.model_interest
+        continued.budget_inr = budget or continued.budget_inr
+        continued.colour_preference = colour or continued.colour_preference
+        continued.transmission_preference = transmission or continued.transmission_preference
+        continued.timeline_days = timeline_days if timeline_days is not None else continued.timeline_days
+        continued.trade_in_vehicle = trade_in or continued.trade_in_vehicle
+        if intent != "general":
+            continued.intent = intent
+        accumulated_score = score_lead(
+            message,
+            continued.model_interest,
+            continued.budget_inr,
+            continued.timeline_days,
+        )
+        continued.lead_score = max(continued.lead_score, accumulated_score)
+        if continued.stage in {"NEW", "QUALIFIED"}:
+            continued.stage = "QUALIFIED" if continued.lead_score >= 70 else "NEW"
+        continued.summary = f"{channel.upper()} conversation update: {message[:1000]}"
+        continued.updated_at = utcnow()
+        db.add(
+            AuditEvent(
+                event_type="lead.updated_from_conversation",
+                entity_type="lead",
+                entity_id=str(continued.id),
+                payload={"channel": channel, "score": continued.lead_score, "intent": intent, "event_id": event_id},
+            )
+        )
+        db.commit()
+        db.refresh(continued)
+        return continued, False
+
+    if intent == "general":
+        score = 0
+
     lead = Lead(
         customer_id=customer.id,
         source_event_id=event_id,
@@ -190,7 +238,7 @@ def intake_lead(
         timeline_days=timeline_days,
         trade_in_vehicle=trade_in,
         lead_score=score,
-        stage="QUALIFIED" if score >= 70 else "NEW",
+        stage="QUALIFIED" if score >= 70 else ("UNQUALIFIED" if intent == "general" else "NEW"),
         summary=f"{channel.upper()} enquiry: {message[:1000]}",
         updated_at=utcnow(),
     )

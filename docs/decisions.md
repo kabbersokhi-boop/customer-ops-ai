@@ -36,8 +36,20 @@
 
 **Why:** The present state machine is short, deterministic, and visible in ordinary services. A graph framework becomes useful only when multi-step recovery, resumable checkpoints, or several autonomous tool loops justify it.
 
-## ADR-007 — Zero-build operations console
+## ADR-007 — Zero-build browser surfaces
 
-**Decision:** Keep one server-hosted HTML application.
+**Decision:** Keep two server-hosted HTML applications with no frontend build pipeline: a customer simulator and an operator console.
 
 **Why:** It reduces demo setup and supply-chain surface while still exposing operational state. A production console would use authenticated routes and a maintained frontend stack.
+
+## ADR-008 — Separate customer and operator surfaces
+
+**Decision:** Serve a dedicated `/customer` messaging experience and keep `/` as the internal Operations Console.
+
+**Why:** A customer conversation and an operator control plane have different information needs. Separation makes the business journey obvious without hiding execution, audit, provider, or governance detail from the interviewer.
+
+## ADR-009 — No unsupported-knowledge RAG
+
+**Decision:** Refuse warranty, arbitrary specification, and live finance-rate answers until approved sources exist.
+
+**Why:** Adding generic documents or model memory for portfolio optics would weaken trust. The operational-agent story is stronger when missing authority is explicit. Approved policy retrieval can be added later behind the same typed source boundary.

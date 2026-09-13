@@ -55,7 +55,7 @@ N8N_APPOINTMENT_WEBHOOK_URL=http://localhost:5678/webhook/customer-ops/appointme
 N8N_UI_BASE_URL=http://localhost:5678
 ~~~
 
-The console then discovers this public routing configuration from `/api/demo/config`. A customer message visibly follows Browser → n8n → FastAPI → NVIDIA NIM/PostgreSQL/Airtable → n8n → Browser. The response includes n8n workflow and execution IDs, and the console links to that execution. NVIDIA NIM and all policy remain behind FastAPI.
+Both `/customer` and the Operations Console discover this public routing configuration from `/api/demo/config`. A customer message visibly follows Browser → n8n → FastAPI → NVIDIA NIM/PostgreSQL/Airtable → n8n → Browser. The normalized event preserves the typed conversation lead ID, the response includes n8n workflow and execution IDs, and both demo surfaces can link to that execution. NVIDIA NIM and all policy remain behind FastAPI.
 
 Webhook URLs must not contain credentials, query tokens, fragments, or URL user-info; unsafe values are rejected and that command route falls back to FastAPI. Use `ORCHESTRATION_MODE=direct` for tests and offline local work.
 

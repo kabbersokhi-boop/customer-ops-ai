@@ -23,7 +23,8 @@
 
 | Threat | Implemented control | Remaining work |
 |---|---|---|
-| Prompt injection | Customer text labelled untrusted; no mutation tools; output guard | Broader adversarial corpus |
+| Prompt injection | Customer text labelled untrusted; deterministic authority boundaries; no mutation tools; output guard | Broader adversarial corpus |
+| Unapproved business knowledge | Warranty/specification/finance questions bypass model memory | Connect approved, versioned sources when required |
 | Fabricated stock/price | Database tool boundary and grounding checks | Structured claim verifier |
 | Unauthorized discount | Deterministic threshold and human approval | Identity-backed approval roles |
 | Duplicate webhook/booking | Unique receipts and idempotency keys | Cross-region strategy |
@@ -34,6 +35,7 @@
 | Admin endpoint abuse | Optional admin header | OAuth/OIDC, RBAC, CSRF controls |
 | Workflow replay | Idempotent API boundaries | Signed provider webhooks |
 | Demo webhook abuse | Unsafe credentialized URLs rejected; business mutations remain typed/idempotent | Restrict network access and require signed/header-authenticated production webhooks |
+| Cross-customer conversation update | Typed continuation ID accepted only for the same stored customer identity | Authenticated customer/session binding |
 
 ## Security posture
 
