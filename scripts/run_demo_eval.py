@@ -158,7 +158,12 @@ class EvalRun:
         attention = briefing.json()["attention"]
         self.check(
             "grounded manager briefing",
-            bool(attention) and all("title" in item and "entity_ids" in item for item in attention),
+            bool(attention)
+            and all(
+                {"title", "detail", "action", "type", "entity_id"}.issubset(item)
+                for item in attention
+            )
+            and "definitions" in briefing.json()["metrics"],
             f"attention_items={len(attention)}",
         )
 
