@@ -4,10 +4,13 @@
 
 ```bash
 git switch presentation-reset-clean-demo
-make demo-reset
 make demo-ready
 make orchestration-eval
+make demo-reset
+python3 scripts/demo_ready.py
 ```
+
+The orchestration eval deliberately creates and replays a booking. Run the guarded reset after it so the customer, manager, and Airtable views start from the deterministic interview baseline.
 
 Open the customer experience, manager dashboard, n8n workflow list, and Airtable Appointments view in separate tabs.
 
