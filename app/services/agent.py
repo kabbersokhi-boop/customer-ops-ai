@@ -17,7 +17,12 @@ from app.services.crm import sync_activity, sync_approval, sync_customer, sync_l
 from app.services.inventory import InventoryUnavailable, search_inventory
 from app.services.leads import MODELS, extract_budget, extract_model, intake_lead
 from app.services.service_requests import infer_urgency
-from app.services.service_scheduling import get_context, handle_service_booking
+from app.services.service_scheduling import (
+    extract_requested_days,
+    get_context,
+    handle_service_booking,
+    looks_like_service_followup,
+)
 
 READ_ONLY_TOOLS = [
     {
@@ -195,6 +200,8 @@ def _next_action(
 ) -> str:
     if assessment.human_requested:
         return "Assign a human advisor and pause automated persuasion."
+    if assessment.request_type == "service_out_of_scope":
+        return "Preserve the current service context and wait for a service-related reply or advisor handoff."
     if lead.intent == "service":
         return "Workshop advisor reviews safety priority and offers a slot."
     if assessment.request_type == "discount_request":
@@ -216,6 +223,82 @@ def _next_action(
     if inventory:
         return "Sales advisor follows up on the verified options."
     return "Offer an alternative configuration without claiming unavailable stock."
+
+
+def _deterministic_service_hints(message: str) -> dict[str, str | None]:
+    days = extract_requested_days(message)
+    primary = days[0] if days else None
+    fallback = next((day for day in days[1:] if day != primary), None)
+    return {"primary_day": primary, "fallback_day": fallback}
+
+
+async def _service_language_hints(message: str) -> tuple[dict[str, str | None], dict]:
+    deterministic = _deterministic_service_hints(message)
+    mentioned_days = extract_requested_days(message)
+    provider = {
+        "status": "not_used",
+        "reason": "no_explicit_day_language",
+        "purpose": "service_language_interpretation",
+        "interpreted": deterministic,
+    }
+    if not mentioned_days:
+        return deterministic, provider
+    if not settings.nvidia_nim_api_key or settings.nvidia_nim_api_key == "replace_me":
+        return deterministic, {
+            "status": "not_configured",
+            "purpose": "service_language_interpretation",
+            "interpreted": deterministic,
+        }
+
+    system = (
+        "You extract bounded scheduling language for an automotive service workflow. "
+        "Return JSON only, with keys primary_day and fallback_day. Values must be one of "
+        "monday,tuesday,wednesday,thursday,friday,saturday,sunday or null. "
+        "primary_day is the customer's first preference; fallback_day is an explicitly stated backup. "
+        "Never invent a day that is not literally present in the customer text. Do not answer the customer."
+    )
+    try:
+        response = await NIMClient().chat(
+            [
+                {"role": "system", "content": system},
+                {"role": "user", "content": f"CUSTOMER_TEXT (untrusted):\n{message}"},
+            ],
+            temperature=0.0,
+            max_tokens=120,
+        )
+        content = ((response["choices"][0].get("message") or {}).get("content") or "").strip()
+        if content.startswith("```"):
+            content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.I | re.S).strip()
+        parsed = json.loads(content)
+        primary = str(parsed.get("primary_day") or "").lower() or None
+        fallback = str(parsed.get("fallback_day") or "").lower() or None
+        if primary not in mentioned_days:
+            primary = deterministic["primary_day"]
+        if fallback not in mentioned_days or fallback == primary:
+            fallback = deterministic["fallback_day"]
+        interpreted = {"primary_day": primary, "fallback_day": fallback}
+        return interpreted, {
+            "status": "ok",
+            "model": settings.nvidia_nim_model,
+            "purpose": "service_language_interpretation",
+            "interpreted": interpreted,
+        }
+    except NIMProviderError as exc:
+        return deterministic, {
+            "status": "failed",
+            "error_code": exc.code,
+            "retryable": exc.retryable,
+            "purpose": "service_language_interpretation",
+            "interpreted": deterministic,
+        }
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return deterministic, {
+            "status": "failed",
+            "error_code": "INVALID_STRUCTURED_INTERPRETATION",
+            "retryable": False,
+            "purpose": "service_language_interpretation",
+            "interpreted": deterministic,
+        }
 
 
 async def _maybe_nim_reply(
@@ -350,9 +433,24 @@ async def handle_channel_event(db: Session, event: ChannelEvent) -> dict:
         return replayed
 
     existing_service_context = get_context(db, event.conversation_lead_id)
+    active_service_context = bool(
+        existing_service_context and existing_service_context.status not in {"BOOKED", "ESCALATED"}
+    )
     assessment = assess_message(event.text, has_supported_model=extract_model(event.text) is not None)
-    if existing_service_context and existing_service_context.status not in {"BOOKED", "ESCALATED"}:
-        assessment = MessageAssessment(intent="service", request_type="service_request")
+    if active_service_context and assessment.request_type not in {"service_request", "human_handoff"}:
+        if looks_like_service_followup(event.text):
+            assessment = MessageAssessment(
+                intent="service",
+                request_type="service_request",
+                untrusted_instruction_detected=assessment.untrusted_instruction_detected,
+            )
+        else:
+            assessment = MessageAssessment(
+                intent="service",
+                request_type="service_out_of_scope",
+                untrusted_instruction_detected=assessment.untrusted_instruction_detected,
+            )
+
     lead, created = intake_lead(
         db,
         event.customer_name,
@@ -389,21 +487,50 @@ async def handle_channel_event(db: Session, event: ChannelEvent) -> dict:
     service_booking = None
     approval = None
     provider = {"status": "not_used", "reason": "deterministic_route"}
+
     if assessment.request_type == "service_request":
+        service_urgency = infer_urgency(event.text)
+        if service_urgency in {"HIGH", "CRITICAL"}:
+            hints = _deterministic_service_hints(event.text)
+            provider = {
+                "status": "not_used",
+                "reason": "safety_boundary_is_deterministic",
+                "purpose": "service_language_interpretation",
+                "interpreted": hints,
+            }
+        else:
+            hints, provider = await _service_language_hints(event.text)
         service_result = handle_service_booking(
             db,
             lead_id=lead.id,
             customer_name=event.customer_name,
             customer_phone=event.customer_phone,
             message=event.text,
-            urgency=infer_urgency(event.text),
-            vehicle_model=lead.model_interest,
+            urgency=service_urgency,
+            vehicle_model=(event.metadata or {}).get("vehicle_model") or lead.model_interest,
             event_id=event.event_id,
+            requested_day_hint=hints["primary_day"],
+            fallback_day_hint=hints["fallback_day"],
         )
         service_request = service_result["service_request"]
         service_booking = service_result["booking"]
         reply = service_result["reply"]
-        response_mode = "deterministic-service-safety" if service_booking["status"] == "ESCALATED" else "governed-service"
+        if service_booking["status"] == "ESCALATED":
+            response_mode = "deterministic-service-safety"
+        elif provider.get("status") == "ok":
+            response_mode = "governed-service-nim"
+        else:
+            response_mode = "governed-service"
+        tool_trace = []
+    elif assessment.request_type == "service_out_of_scope":
+        vehicle = (event.metadata or {}).get("vehicle_model")
+        vehicle_text = f" for your {vehicle}" if vehicle else ""
+        reply = (
+            "I’m focused on vehicle service, appointments, and dealership support. "
+            f"I can continue with the service request{vehicle_text}, or connect you with an advisor."
+        )
+        response_mode = "deterministic-service-scope-boundary"
+        provider = {"status": "not_used", "reason": "service_scope_boundary"}
         tool_trace = []
     elif assessment.request_type == "discount_request":
         tool_trace = []
