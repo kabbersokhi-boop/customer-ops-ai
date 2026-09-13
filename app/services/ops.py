@@ -55,6 +55,9 @@ def operations_summary(db: Session) -> dict:
     pending_approvals = db.scalar(
         select(func.count()).select_from(ApprovalRequest).where(ApprovalRequest.status == "PENDING")
     ) or 0
+    human_handoffs = db.scalar(
+        select(func.count()).select_from(_operator_leads().where(Lead.stage == "HUMAN_HANDOFF_REQUESTED").subquery())
+    ) or 0
     crm_failures = db.scalar(select(func.count()).select_from(CrmSync).where(CrmSync.status == "FAILED")) or 0
     service_bookings = db.scalar(
         select(func.count()).select_from(Appointment).where(Appointment.kind == "service")
@@ -69,7 +72,7 @@ def operations_summary(db: Session) -> dict:
             ServiceRequest.created_at < now - timedelta(minutes=15),
         )
     ) or 0
-    needs_intervention = urgent_open + pending_recovery + crm_failures + pending_approvals
+    needs_intervention = urgent_open + pending_recovery + crm_failures + pending_approvals + human_handoffs
     return {
         "bookings_today": service_today,
         "need_intervention": needs_intervention,
@@ -81,6 +84,7 @@ def operations_summary(db: Session) -> dict:
         "integration_issues": pending_recovery + crm_failures,
         "pending_recoveries": pending_recovery,
         "pending_approvals": pending_approvals,
+        "human_handoffs": human_handoffs,
         "appointments": db.scalar(select(func.count()).select_from(Appointment)) or 0,
         "service_requests": service_requests,
         "leads": db.scalar(select(func.count()).select_from(_operator_leads().subquery())) or 0,
@@ -95,7 +99,9 @@ def operations_summary(db: Session) -> dict:
         "crm_sync_failures": crm_failures,
         "definitions": {
             "bookings_today": "Confirmed service appointments scheduled for today in the demo timezone.",
-            "need_intervention": "Open safety cases, booking recoveries, CRM failures, and pending approvals.",
+            "need_intervention": (
+                "Open safety cases, booking recoveries, CRM failures, human handoffs, and pending approvals."
+            ),
             "automation_rate": "Confirmed service bookings divided by service requests in stored demo state.",
             "sla_at_risk": "High or critical service cases open for more than 15 minutes.",
             "integration_issues": "Pending booking recoveries plus failed CRM projections.",
@@ -123,28 +129,20 @@ def find_lost_leads(db: Session, stale_hours: int = 24, limit: int = 20) -> list
 def manager_briefing(db: Session) -> dict:
     metrics = operations_summary(db)
     attention: list[dict] = []
-    urgent = db.execute(
-        select(ServiceRequest, Customer)
-        .join(Customer, Customer.id == ServiceRequest.customer_id)
-        .where(
-            ServiceRequest.urgency.in_(["HIGH", "CRITICAL"]),
-            ServiceRequest.stage.in_(["OPEN", "NEEDS_ADVISOR"]),
-        )
-        .order_by(ServiceRequest.created_at)
-        .limit(5)
-    ).all()
-    for request, customer in urgent:
-        waited = max(0, int((utcnow() - request.created_at).total_seconds() // 60))
+
+    down = [state.service_name for state in db.scalars(select(SystemState)).all() if not state.is_available]
+    for service in down:
         attention.append(
             {
-                "type": "SAFETY_CASE",
-                "severity": "critical" if request.urgency == "CRITICAL" else "high",
-                "title": f"{customer.name} — {request.issue_summary[:60]}",
-                "detail": f"Safety-sensitive · no advisor assigned · waiting {waited} min",
-                "action": "Assign advisor",
-                "entity_id": request.id,
+                "type": "SYSTEM_STATE",
+                "severity": "critical",
+                "title": f"{service.title()} unavailable",
+                "detail": "Safe fallback is active; consequential actions will not report false success.",
+                "action": "View technical trace",
+                "entity_id": service,
             }
         )
+
     recoveries = db.execute(
         select(BookingRecovery, Lead, Customer)
         .join(Lead, Lead.id == BookingRecovery.lead_id)
@@ -168,6 +166,7 @@ def manager_briefing(db: Session) -> dict:
                 "entity_id": recovery.id,
             }
         )
+
     for sync in db.scalars(
         select(CrmSync).where(CrmSync.status == "FAILED").order_by(CrmSync.updated_at).limit(5)
     ).all():
@@ -177,8 +176,71 @@ def manager_briefing(db: Session) -> dict:
                 "severity": "medium",
                 "title": "CRM sync delayed",
                 "detail": f"{sync.entity_type} {sync.entity_id} is safe in PostgreSQL · retry pending",
-                "action": "Inspect integration",
+                "action": "View technical trace",
                 "entity_id": sync.id,
+            }
+        )
+
+    urgent = db.execute(
+        select(ServiceRequest, Customer)
+        .join(Customer, Customer.id == ServiceRequest.customer_id)
+        .where(
+            ServiceRequest.urgency.in_(["HIGH", "CRITICAL"]),
+            ServiceRequest.stage.in_(["OPEN", "NEEDS_ADVISOR"]),
+        )
+        .order_by(ServiceRequest.created_at)
+        .limit(5)
+    ).all()
+    for request, customer in urgent:
+        waited = max(0, int((utcnow() - request.created_at).total_seconds() // 60))
+        attention.append(
+            {
+                "type": "SAFETY_CASE",
+                "severity": "critical" if request.urgency == "CRITICAL" else "high",
+                "title": f"{customer.name} — {request.issue_summary[:60]}",
+                "detail": f"Safety-sensitive · no advisor assigned · waiting {waited} min",
+                "action": "Review case",
+                "entity_id": request.id,
+            }
+        )
+
+    handoffs = db.execute(
+        _operator_leads()
+        .join(Customer, Customer.id == Lead.customer_id)
+        .where(Lead.stage == "HUMAN_HANDOFF_REQUESTED")
+        .order_by(Lead.updated_at)
+        .limit(5)
+        .with_only_columns(Lead, Customer)
+    ).all()
+    for lead, customer in handoffs:
+        attention.append(
+            {
+                "type": "HUMAN_HANDOFF",
+                "severity": "medium",
+                "title": f"{customer.name} — advisor requested",
+                "detail": lead.summary or "Customer asked for a human advisor.",
+                "action": "View customer context",
+                "entity_id": lead.id,
+            }
+        )
+
+    approvals = db.execute(
+        select(ApprovalRequest, Lead, Customer)
+        .join(Lead, Lead.id == ApprovalRequest.lead_id)
+        .join(Customer, Customer.id == Lead.customer_id)
+        .where(ApprovalRequest.status == "PENDING")
+        .order_by(ApprovalRequest.created_at)
+        .limit(5)
+    ).all()
+    for approval, lead, customer in approvals:
+        attention.append(
+            {
+                "type": "APPROVAL",
+                "severity": "medium",
+                "title": f"{customer.name} — commercial decision required",
+                "detail": approval.recommendation or f"{lead.intent.title()} request requires manager review.",
+                "action": "Review decision",
+                "entity_id": approval.id,
             }
         )
     if not attention:
@@ -191,19 +253,6 @@ def manager_briefing(db: Session) -> dict:
                 "action": "Monitor",
                 "entity_id": None,
             }
-        )
-    down = [state.service_name for state in db.scalars(select(SystemState)).all() if not state.is_available]
-    for service in down:
-        attention.insert(
-            0,
-            {
-                "type": "SYSTEM_STATE",
-                "severity": "critical",
-                "title": f"{service.title()} unavailable",
-                "detail": "Safe fallback is active; consequential actions will not report false success.",
-                "action": "Restore provider",
-                "entity_id": service,
-            },
         )
     return {
         "generated_at": utcnow().isoformat() + "Z",

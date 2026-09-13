@@ -2,11 +2,12 @@ from app.core.config import settings
 from app.services.orchestration import demo_orchestration_config
 
 
-def test_demo_console_keeps_orchestration_proof_behind_technical_details():
+def test_manager_workspace_keeps_orchestration_proof_behind_technical_details():
     markup = open("app/static/index.html", encoding="utf-8").read()
     assert "/api/demo/config" in markup
     assert "Technical details" in markup
-    assert "openTrace" in markup
+    assert "openTechnicalDetails" in markup
+    assert 'id="technicalDrawer"' in markup
     assert 'id="pipeline"' in markup
     assert 'id="crmTrace"' in markup
     assert 'id="auditTrace"' in markup
@@ -14,6 +15,15 @@ def test_demo_console_keeps_orchestration_proof_behind_technical_details():
     assert "Open n8n executions" in markup
     assert "/api/ops/crm-sync" in markup
     assert "/api/ops/audit" in markup
+
+
+def test_manager_workspace_prioritizes_exceptions_over_customer_context():
+    markup = open("app/static/index.html", encoding="utf-8").read()
+    assert "Booking completion rate" in markup
+    assert "Recent service appointments" in markup
+    assert markup.index('id="attentionTitle"') < markup.index('id="appointmentsTitle"')
+    assert markup.index('id="appointmentsTitle"') < markup.index('id="contextTitle"')
+    assert "lead score" not in markup.lower()
 
 
 def test_appointment_workflow_forwards_confirmed_contact_fields():

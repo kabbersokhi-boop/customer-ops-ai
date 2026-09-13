@@ -1,37 +1,618 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Service Operations Dashboard</title>
-<style>
-:root{--bg:#081117;--panel:#0f1b23;--panel2:#13232d;--line:#223743;--text:#eef6f2;--muted:#92a6b0;--green:#70ddb0;--amber:#ffd166;--red:#ff8b96;--blue:#83c7ff}*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0a141b,#071016);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,a{font:inherit}.top{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;background:rgba(8,17,23,.94);backdrop-filter:blur(10px);z-index:10}.brand{display:flex;align-items:center;gap:11px}.mark{width:34px;height:34px;border-radius:10px;background:var(--green);color:#07120e;display:grid;place-items:center;font-weight:900;font-size:12px}.brand strong{font-size:14px}.brand small{display:block;color:var(--muted);font-size:10px;margin-top:2px}.nav{display:flex;gap:8px}.nav a,.nav button{border:1px solid var(--line);background:#0d1820;color:#d5e0e4;border-radius:9px;padding:8px 10px;text-decoration:none;font-size:10px;cursor:pointer}.main{max-width:1220px;margin:0 auto;padding:26px}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}.hero h1{margin:0;font-size:28px;letter-spacing:-.04em}.hero p{margin:6px 0 0;color:var(--muted);font-size:11px}.health{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.pill{border:1px solid #2d4a59;background:#0d1921;border-radius:999px;padding:6px 9px;font-size:9px;color:#bdd0d9}.pill.ok{border-color:#285f49;color:#9ce6c1}.pill.warn{border-color:#664f25;color:#ffe19b}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.kpi{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px}.kpi span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}.kpi b{display:block;font-size:25px;margin-top:5px}.workspace{display:grid;grid-template-columns:1.25fr .75fr;gap:12px}.stack{display:grid;gap:12px;align-content:start}.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px}.card h2{margin:0;font-size:14px}.sub{color:var(--muted);font-size:10px;margin-top:4px}.sectionHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.linkBtn{border:0;background:transparent;color:#8fd4ff;font-size:10px;cursor:pointer}.leadHero{margin-top:12px;background:linear-gradient(145deg,#10232c,#0c181f);border:1px solid #2a4654;border-radius:14px;padding:15px}.leadTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.leadTop strong{font-size:17px}.badge{font-size:8px;text-transform:uppercase;letter-spacing:.08em;border:1px solid #395562;border-radius:999px;padding:4px 7px;white-space:nowrap}.badge.high,.badge.critical,.badge.failed{color:#ffb0b8;border-color:#6d3841}.badge.pending,.badge.medium{color:#ffe08c;border-color:#665724}.badge.ok,.badge.booked,.badge.synced{color:#9ce6c1;border-color:#2f684f}.badge.info{color:#a8d4ff;border-color:#365f7d}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.fact{background:#09151c;border:1px solid #1f3440;border-radius:10px;padding:9px}.fact span{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.fact b{display:block;font-size:11px;margin-top:4px;word-break:break-word}.list{display:grid;gap:7px;margin-top:11px}.row{background:#0a161d;border:1px solid #1e323d;border-radius:10px;padding:10px}.row.clickable{cursor:pointer}.row.clickable:hover{border-color:#36596a}.rowHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.row strong{font-size:11px}.row small{display:block;color:var(--muted);font-size:9px;line-height:1.45;margin-top:4px}.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.btn{border:1px solid #36505f;background:#142630;color:#fff;border-radius:8px;padding:7px 9px;font-size:9px;font-weight:750;cursor:pointer}.btn.primary{background:#dff7ea;color:#092016;border-color:#dff7ea}.btn.warn{background:#3c3116;color:#ffe39b;border-color:#6e5a26}.btn.danger{background:#3b1d24;color:#ffb4bc;border-color:#713b47}.empty{padding:13px;border:1px dashed #314754;border-radius:10px;color:var(--muted);font-size:10px;margin-top:10px}.lower{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.drawer{position:fixed;inset:0;display:none;background:rgba(0,0,0,.5);z-index:30}.drawer.open{display:block}.drawerPanel{position:absolute;right:0;top:0;bottom:0;width:min(680px,96vw);background:#0a151c;border-left:1px solid var(--line);padding:22px;overflow:auto;box-shadow:-20px 0 60px rgba(0,0,0,.35)}.drawerTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.drawerTop h2{margin:0;font-size:18px}.close{border:1px solid var(--line);background:#111f29;color:#fff;border-radius:9px;padding:7px 10px;cursor:pointer}.traceBlock{margin-top:18px}.traceBlock h3{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 9px}.pipeline{display:grid;gap:7px}.step{display:flex;align-items:center;gap:9px;background:#09151c;border:1px solid #1f3440;border-radius:10px;padding:10px}.stepNum{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#183628;color:#9ce6c1;font-size:9px;font-weight:800}.step b{font-size:10px}.traceGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.traceCard{background:#09151c;border:1px solid #1f3440;border-radius:10px;padding:10px}.traceCard strong{font-size:10px}.traceCard small{display:block;color:var(--muted);font-size:9px;line-height:1.45;margin-top:4px}.n8nLink{display:inline-block;margin-top:8px;color:#9cd7ff;text-decoration:none;font-size:10px}.controls{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}@media(max-width:900px){.workspace,.lower{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.hero{display:grid}.health{justify-content:flex-start}.facts{grid-template-columns:1fr 1fr}}@media(max-width:580px){.main{padding:16px}.top{padding:0 14px}.nav a{display:none}.facts{grid-template-columns:1fr}.traceGrid{grid-template-columns:1fr}}
-.kpis{grid-template-columns:repeat(5,1fr)}@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Operations Dashboard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #091016;
+      --surface: #0d171e;
+      --surface-raised: #111d25;
+      --surface-soft: #13212a;
+      --border: #21313b;
+      --border-strong: #30434f;
+      --text: #edf3f1;
+      --text-soft: #c8d3d0;
+      --muted: #8fa1aa;
+      --muted-strong: #aab8be;
+      --accent: #72d7ad;
+      --accent-strong: #99e6c4;
+      --blue: #83c8f5;
+      --amber: #f4c76b;
+      --red: #f27d8b;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+      --radius: 12px;
+      --radius-small: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: radial-gradient(circle at 12% -8%, rgba(45, 95, 77, 0.12), transparent 28rem), var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    button, a { font: inherit; }
+    button:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      min-height: 64px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 0 28px;
+      border-bottom: 1px solid rgba(48, 67, 79, 0.8);
+      background: rgba(9, 16, 22, 0.94);
+      backdrop-filter: blur(14px);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 9px;
+      background: var(--accent);
+      color: #07140f;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.04em;
+    }
+    .brand-name { display: block; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+    .brand-context { display: block; margin-top: 1px; color: var(--muted); font-size: 11px; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    .system-status, .nav-link, .button {
+      display: inline-flex;
+      min-height: 34px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-small);
+      background: transparent;
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+    }
+    .system-status, .nav-link { padding: 7px 11px; }
+    .system-status:hover, .nav-link:hover, .button:hover {
+      border-color: #49606d;
+      background: rgba(255, 255, 255, 0.025);
+      color: var(--text);
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      box-shadow: 0 0 0 3px rgba(143, 161, 170, 0.1);
+    }
+    .system-status.is-healthy .status-dot { background: var(--accent); box-shadow: 0 0 0 3px rgba(114, 215, 173, 0.12); }
+    .system-status.is-degraded .status-dot { background: var(--red); box-shadow: 0 0 0 3px rgba(242, 125, 139, 0.12); }
+
+    .page { width: min(1360px, calc(100% - 48px)); margin: 0 auto; padding: 32px 0 56px; }
+    .overview { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; margin-bottom: 20px; }
+    .eyebrow { margin: 0 0 6px; color: var(--accent); font-size: 11px; font-weight: 750; letter-spacing: 0.11em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(26px, 3vw, 34px); font-weight: 720; letter-spacing: -0.035em; line-height: 1.12; }
+    .overview-copy { max-width: 720px; margin: 8px 0 0; color: var(--muted-strong); font-size: 14px; }
+    .updated-at { flex: 0 0 auto; padding-bottom: 2px; color: var(--muted); font-size: 12px; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin-bottom: 18px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .metric { min-width: 0; padding: 15px 17px 14px; border-right: 1px solid var(--border); }
+    .metric:last-child { border-right: 0; }
+    .metric-label { display: block; overflow: hidden; color: var(--muted); font-size: 11px; font-weight: 650; letter-spacing: 0.02em; text-overflow: ellipsis; white-space: nowrap; }
+    .metric-value { display: block; margin-top: 5px; font-size: 25px; font-weight: 720; letter-spacing: -0.035em; line-height: 1; }
+    .metric-value.is-risk { color: var(--amber); }
+    .metric-value.is-critical { color: var(--red); }
+
+    .primary-grid, .work-grid, .secondary-grid { display: grid; gap: 16px; margin-top: 16px; align-items: start; }
+    .primary-grid { grid-template-columns: minmax(0, 1.9fr) minmax(300px, 0.85fr); }
+    .work-grid { grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.75fr); }
+    .secondary-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .panel { min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.015); }
+    .attention-panel { border-color: #35434c; box-shadow: var(--shadow); }
+    .panel-header { display: flex; min-height: 65px; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 15px 17px 13px; border-bottom: 1px solid var(--border); }
+    .panel-title { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.012em; }
+    .panel-description { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .section-count { display: inline-flex; min-width: 26px; height: 26px; align-items: center; justify-content: center; border: 1px solid var(--border-strong); border-radius: 7px; color: var(--text-soft); font-size: 12px; font-weight: 700; }
+
+    .attention-list { display: grid; }
+    .attention-item { display: grid; grid-template-columns: 4px minmax(0, 1fr); gap: 14px; padding: 17px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .attention-item:last-child { border-bottom: 0; }
+    .attention-item:first-child:not(.is-clear) { padding-top: 19px; padding-bottom: 19px; background: linear-gradient(90deg, rgba(242, 125, 139, 0.035), transparent 60%); }
+    .severity-rail { width: 4px; min-height: 100%; border-radius: 99px; background: var(--blue); }
+    .attention-item.is-critical .severity-rail, .attention-item.is-high .severity-rail { background: var(--red); }
+    .attention-item.is-medium .severity-rail { background: var(--amber); }
+    .attention-item.is-clear .severity-rail { background: var(--accent); }
+    .attention-content { min-width: 0; }
+    .attention-meta { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; }
+    .severity-label { color: var(--muted-strong); font-size: 10px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; }
+    .attention-item.is-critical .severity-label, .attention-item.is-high .severity-label { color: #ffadb6; }
+    .attention-item.is-medium .severity-label { color: #f4d488; }
+    .attention-type { color: var(--muted); font-size: 11px; }
+    .attention-title { margin: 0; overflow-wrap: anywhere; font-size: 16px; font-weight: 710; letter-spacing: -0.015em; }
+    .attention-detail { max-width: 760px; margin: 7px 0 0; color: var(--muted-strong); font-size: 13px; line-height: 1.55; }
+    .attention-actions, .decision-actions, .drawer-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+
+    .button { min-height: 32px; padding: 6px 10px; }
+    .button-primary { border-color: var(--accent); background: var(--accent); color: #07150f; }
+    .button-primary:hover { border-color: var(--accent-strong); background: var(--accent-strong); color: #07150f; }
+    .button-danger { border-color: #6c3641; background: #321b22; color: #ffc0c6; }
+    .button-warning { border-color: #665526; background: #2c2616; color: #f5d889; }
+    .button-quiet { min-height: 28px; border-color: transparent; color: var(--blue); padding: 4px 6px; }
+    .button-quiet:hover { border-color: var(--border); }
+
+    .activity-feed { display: grid; padding: 5px 16px 8px; }
+    .activity-item { display: grid; grid-template-columns: 45px minmax(0, 1fr); gap: 12px; padding: 11px 0; border-bottom: 1px solid rgba(33, 49, 59, 0.78); }
+    .activity-item:last-child { border-bottom: 0; }
+    .activity-time { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .activity-title { display: block; color: var(--text-soft); font-size: 12px; font-weight: 650; }
+    .activity-detail { display: -webkit-box; margin-top: 2px; overflow: hidden; color: var(--muted); font-size: 11px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+
+    .table-wrap { width: 100%; overflow-x: auto; }
+    .operations-table { width: 100%; min-width: 760px; border-collapse: collapse; }
+    .operations-table th { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: 0.07em; text-align: left; text-transform: uppercase; }
+    .operations-table td { padding: 13px 16px; border-bottom: 1px solid rgba(33, 49, 59, 0.78); color: var(--text-soft); font-size: 12px; vertical-align: middle; }
+    .operations-table tbody tr:last-child td { border-bottom: 0; }
+    .operations-table tbody tr:hover { background: rgba(255, 255, 255, 0.018); }
+    .customer-cell strong { display: block; color: var(--text); font-size: 13px; }
+    .customer-cell span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .state { display: inline-flex; align-items: center; gap: 6px; color: var(--text-soft); font-size: 11px; font-weight: 650; white-space: nowrap; }
+    .state::before { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); content: ""; }
+    .state.is-success::before { background: var(--accent); }
+    .state.is-warning::before { background: var(--amber); }
+    .state.is-danger::before { background: var(--red); }
+
+    .queue-list, .decision-list { display: grid; }
+    .queue-item, .decision-item { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .queue-item:last-child, .decision-item:last-child { border-bottom: 0; }
+    .queue-top, .decision-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .queue-title, .decision-title { margin: 0; color: var(--text); font-size: 13px; font-weight: 680; }
+    .queue-detail, .decision-detail { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .tag { display: inline-flex; flex: 0 0 auto; align-items: center; border: 1px solid var(--border-strong); border-radius: 6px; padding: 3px 6px; color: var(--muted-strong); font-size: 9px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+    .tag.is-critical, .tag.is-high, .tag.is-failed { border-color: #693541; color: #ffacb5; }
+    .tag.is-medium, .tag.is-pending, .tag.is-open, .tag.is-needs-advisor { border-color: #625328; color: #f4d487; }
+    .tag.is-booked, .tag.is-completed, .tag.is-synced { border-color: #2d5b49; color: #93dfbd; }
+
+    .context-selector { display: flex; gap: 6px; padding: 11px 15px; overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: thin; }
+    .context-tab { flex: 0 0 auto; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--muted); padding: 6px 8px; font-size: 11px; cursor: pointer; }
+    .context-tab:hover, .context-tab.is-active { border-color: var(--border-strong); background: var(--surface-soft); color: var(--text); }
+    .context-body { padding: 16px; }
+    .context-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .context-name { margin: 0; font-size: 16px; font-weight: 710; }
+    .context-subtitle { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .context-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 15px; overflow: hidden; border: 1px solid var(--border); border-radius: 9px; background: var(--border); }
+    .context-fact { min-width: 0; padding: 10px; background: #0a141a; }
+    .context-fact span { display: block; color: var(--muted); font-size: 10px; }
+    .context-fact strong { display: block; margin-top: 3px; overflow: hidden; color: var(--text-soft); font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .context-summary { margin: 13px 0 0; color: var(--text-soft); font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+
+    .empty-state, .loading-state, .error-state { padding: 28px 18px; color: var(--muted); font-size: 12px; text-align: center; }
+    .error-state { color: #ffc0c6; }
+
+    .drawer { position: fixed; inset: 0; z-index: 50; visibility: hidden; background: rgba(2, 7, 10, 0); transition: background 160ms ease, visibility 160ms ease; }
+    .drawer.is-open { visibility: visible; background: rgba(2, 7, 10, 0.68); }
+    .drawer-panel { position: absolute; top: 0; right: 0; bottom: 0; width: min(680px, 96vw); overflow-y: auto; border-left: 1px solid var(--border-strong); background: #0a141a; box-shadow: -24px 0 70px rgba(0, 0, 0, 0.42); transform: translateX(100%); transition: transform 180ms ease; }
+    .drawer.is-open .drawer-panel { transform: translateX(0); }
+    .drawer-header { position: sticky; top: 0; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 20px 22px 16px; border-bottom: 1px solid var(--border); background: rgba(10, 20, 26, 0.97); backdrop-filter: blur(12px); }
+    .drawer-title { margin: 0; font-size: 18px; letter-spacing: -0.02em; }
+    .drawer-content { padding: 2px 22px 30px; }
+    .trace-section { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .trace-section:last-child { border-bottom: 0; }
+    .trace-heading { margin: 0 0 11px; color: var(--muted-strong); font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .pipeline { display: grid; gap: 7px; }
+    .pipeline-step { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 10px; padding: 10px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+    .step-number { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 7px; background: #183226; color: var(--accent-strong); font-size: 10px; font-weight: 800; }
+    .pipeline-step strong { color: var(--text-soft); font-size: 12px; }
+    .trace-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .trace-card { min-width: 0; padding: 10px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+    .trace-card strong { display: block; overflow-wrap: anywhere; color: var(--text-soft); font-size: 11px; }
+    .trace-card span { display: block; margin-top: 4px; overflow-wrap: anywhere; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .n8n-link { display: none; margin-top: 10px; color: var(--blue); font-size: 12px; text-decoration: none; }
+
+    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 80; max-width: min(390px, calc(100vw - 40px)); padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: 9px; background: #14222a; color: var(--text-soft); box-shadow: var(--shadow); font-size: 12px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity 140ms ease, transform 140ms ease; }
+    .toast.is-visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 1050px) {
+      .primary-grid, .work-grid { grid-template-columns: minmax(0, 1fr); }
+      .activity-feed { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
+      .activity-item:nth-child(odd):not(:last-child) { border-right: 1px solid var(--border); padding-right: 20px; }
+    }
+    @media (max-width: 800px) {
+      .topbar { padding: 0 18px; }
+      .page { width: min(100% - 28px, 1360px); padding-top: 24px; }
+      .overview { display: block; }
+      .updated-at { margin-top: 10px; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric { border-bottom: 1px solid var(--border); }
+      .metric:nth-child(2n) { border-right: 0; }
+      .metric:last-child { grid-column: 1 / -1; border-bottom: 0; }
+      .secondary-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 620px) {
+      .brand-context, .system-status span:last-child, .customer-link { display: none; }
+      .topbar { gap: 12px; }
+      .topbar-actions { gap: 6px; }
+      .system-status, .nav-link { padding: 7px 9px; }
+      .activity-feed { grid-template-columns: minmax(0, 1fr); }
+      .activity-item:nth-child(odd):not(:last-child) { border-right: 0; padding-right: 0; }
+      .context-facts, .trace-grid { grid-template-columns: minmax(0, 1fr); }
+      .attention-item { gap: 11px; padding: 15px 13px; }
+      .panel-header { padding-right: 14px; padding-left: 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
 </head>
 <body>
-<div class="app"><header class="top"><div class="brand"><div class="mark">SO</div><div><strong>Service Operations</strong><small>Manager workspace</small></div></div><div class="nav"><a href="/customer">Open customer journey ↗</a><button onclick="openTrace()">Technical details</button></div></header>
-<main class="main"><section class="hero"><div><h1>What needs your attention?</h1><p id="todayLine">Grounded service performance, customer work and integration health.</p></div><div class="health" id="health"></div></section><section class="kpis" id="kpis"></section>
-<section class="workspace"><div class="stack"><div class="card"><div class="sectionHead"><div><h2>Current customer activity</h2><div class="sub">Latest operator-relevant conversation; evaluation channels are excluded.</div></div><button class="linkBtn" onclick="refreshAll()">Refresh</button></div><div id="leadHero"></div></div><div class="card"><div class="sectionHead"><div><h2>Customer activity</h2><div class="sub">Service, handoff and secondary sales journeys.</div></div></div><div class="list" id="leads"></div></div></div>
-<div class="stack"><div class="card"><h2>Needs your attention</h2><div class="sub">Safety, failed confirmations and integration work first.</div><div class="list" id="attention"></div></div><div class="card"><h2>Recent service appointments</h2><div class="sub">Confirmed only after slot revalidation and a typed command.</div><div class="list" id="appointments"></div></div></div></section>
-<section class="lower"><div class="card"><h2>Pending approvals</h2><div class="sub">Commercial decisions remain human-controlled.</div><div class="list" id="approvals"></div></div><div class="card"><h2>Open service cases</h2><div class="sub">Safety and workshop work remain visible to staff.</div><div class="list" id="service"></div></div></section></main></div>
-<div class="drawer" id="drawer" onclick="if(event.target===this)closeTrace()"><aside class="drawerPanel"><div class="drawerTop"><div><h2>Technical details</h2><div class="sub">Readable proof of orchestration, authoritative state, CRM sync and recovery.</div></div><button class="close" onclick="closeTrace()">Close</button></div><div class="traceBlock"><h3>Request path</h3><div class="pipeline" id="pipeline"></div><a class="n8nLink" id="n8nLink" href="#" target="_blank" rel="noreferrer" style="display:none">Open n8n executions ↗</a></div><div class="traceBlock"><h3>CRM sync</h3><div class="traceGrid" id="crmTrace"></div></div><div class="traceBlock"><h3>Recent audit events</h3><div class="traceGrid" id="auditTrace"></div></div><div class="controls"><div class="sub">Local, explicit demo controls</div><div class="actions"><button class="btn danger" onclick="toggleProvider('scheduler',false)">Simulate scheduler timeout</button><button class="btn primary" onclick="toggleProvider('scheduler',true)">Restore scheduler</button><button class="btn danger" onclick="toggleProvider('inventory',false)">Simulate inventory outage</button><button class="btn primary" onclick="toggleProvider('inventory',true)">Restore inventory</button></div></div></aside></div>
-<script>
-const el=id=>document.getElementById(id);const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));async function get(path){const r=await fetch(path);if(!r.ok)throw new Error(path);return r.json()}async function post(path,body){const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(path);return r.json()}function badge(text,cls='info'){return `<span class="badge ${esc(cls)}">${esc(text)}</span>`}function row(title,detail,status='',cls='info',onclick=''){return `<div class="row ${onclick?'clickable':''}" ${onclick?`onclick="${onclick}"`:''}><div class="rowHead"><strong>${esc(title)}</strong>${status?badge(status,cls):''}</div><small>${esc(detail)}</small></div>`}let leadCache=[];
-async function loadHealth(){const d=await get('/health'),p=d.providers||{};el('health').innerHTML=[['DB',p.database],['AI',p.nvidia_nim],['CRM',p.airtable],['Automation',p.orchestration]].map(([a,b])=>`<span class="pill ${String(b).includes('failed')||String(b).includes('down')?'warn':'ok'}">${esc(a)} · ${esc(b)}</span>`).join('')}
-async function loadSummary(){const s=await get('/api/ops/summary');el('todayLine').textContent=`Today · ${s.bookings_today} bookings · ${s.need_intervention} need attention · ${s.awaiting_confirmation} waiting for confirmation`;el('kpis').innerHTML=`<div class="kpi"><span>Bookings today</span><b>${s.bookings_today}</b></div><div class="kpi"><span>Need intervention</span><b>${s.need_intervention}</b></div><div class="kpi"><span>Booking completion rate</span><b>${s.automation_rate}%</b></div><div class="kpi"><span>SLA at risk</span><b>${s.sla_at_risk}</b></div><div class="kpi"><span>Integration issues</span><b>${s.integration_issues}</b></div>`}
-function isFixture(name){return /^Synthetic (Eval|Adversarial)/i.test(name||'')}
-async function loadLeads(){const all=await get('/api/ops/leads?limit=30');leadCache=all.filter(x=>!isFixture(x.customer_name)).slice(0,7);el('leads').innerHTML=leadCache.map(l=>row(l.customer_name,`${l.model_interest||'Discovery'} · ${l.stage} · score ${l.score}`,l.intent,l.score>=80?'high':'info',`selectLead(${l.id})`)).join('')||'<div class="empty">No recent demo leads.</div>';if(leadCache.length)selectLead(window.selectedLead||leadCache[0].id)}
-function selectLead(id){window.selectedLead=id;const l=leadCache.find(x=>x.id===id);if(!l)return;el('leadHero').innerHTML=`<div class="leadHero"><div class="leadTop"><div><strong>${esc(l.customer_name)}</strong><div class="sub">${esc(l.channel)} · updated ${new Date(l.updated_at).toLocaleString()}</div></div>${badge(l.stage,l.intent==='service'?'high':'info')}</div><div class="facts"><div class="fact"><span>Journey</span><b>${esc(l.intent)}</b></div><div class="fact"><span>Operational state</span><b>${esc(l.stage)}</b></div><div class="fact"><span>CRM projection</span><b>${esc(l.crm_sync_status||'NOT SYNCED')}</b></div></div><div class="row" style="margin-top:10px"><strong>Latest context</strong><small>${esc(l.summary||'No conversation summary')}</small></div><div class="actions"><button class="btn" onclick="openTrace()">View technical trace</button></div></div>`}
-async function loadAttention(){const b=await get('/api/ops/briefing');el('attention').innerHTML=(b.attention||[]).slice(0,6).map(x=>`<div class="row"><div class="rowHead"><strong>${esc(x.title)}</strong>${badge(x.severity,x.severity)}</div><small>${esc(x.detail)}</small>${x.type==='BOOKING_RECOVERY'?`<div class="actions"><button class="btn primary" onclick="retryRecovery(${x.entity_id})">Retry booking</button></div>`:''}</div>`).join('')||'<div class="empty">Nothing urgent right now.</div>'}
-async function retryRecovery(id){const result=await post(`/api/ops/recoveries/${id}/retry`,{});if(result.confirmed)alert(`Appointment ${result.appointment_id} confirmed without a duplicate.`);await refreshAll()}
-async function loadAppointments(){const items=await get('/api/ops/appointments?limit=8');const service=items.filter(a=>a.kind==='service');el('appointments').innerHTML=service.slice(0,6).map(a=>row(a.customer_name,`${a.branch} · ${new Date(a.scheduled_for).toLocaleString()} · CRM ${a.crm_status}`,a.status,'booked')).join('')||'<div class="empty">No confirmed service appointments yet.</div>'}
-async function loadApprovals(){const items=await get('/api/approvals?status=PENDING');el('approvals').innerHTML=items.slice(0,4).map(a=>`<div class="row"><div class="rowHead"><strong>Lead ${a.lead_id} · discount request</strong>${badge('pending','pending')}</div><small>Requested: ${esc(a.requested_value)} · ${esc(a.recommendation||'Human review required')}</small><div class="actions"><button class="btn primary" onclick="decideApproval(${a.id},'APPROVED')">Approve</button><button class="btn warn" onclick="decideApproval(${a.id},'MODIFIED',20000)">Modify</button><button class="btn danger" onclick="decideApproval(${a.id},'REJECTED')">Reject</button></div></div>`).join('')||'<div class="empty">No pending approvals.</div>'}
-async function decideApproval(id,decision,value=null){const body={decision};if(value!==null)body.approved_value_inr=value;await post(`/api/approvals/${id}/decision`,body);await refreshAll()}
-async function loadService(){const items=await get('/api/ops/service-requests?limit=8');el('service').innerHTML=items.filter(s=>s.stage!=='BOOKED').slice(0,6).map(s=>row(s.customer_name,`${s.issue_summary} · ${s.registration||'registration not provided'}`,s.urgency,String(s.urgency).toLowerCase())).join('')||'<div class="empty">No open service cases.</div>'}
-async function openTrace(){el('drawer').classList.add('open');const [cfg,crm,audit]=await Promise.all([get('/api/demo/config'),get('/api/ops/crm-sync?limit=8'),get('/api/ops/audit?limit=8')]);el('pipeline').innerHTML=(cfg.flow||[]).map((x,i)=>`<div class="step"><div class="stepNum">${i+1}</div><b>${esc(x)}</b></div>`).join('');if(cfg.n8n_ui_base_url){el('n8nLink').href=cfg.n8n_ui_base_url+'/executions';el('n8nLink').style.display='inline-block'}el('crmTrace').innerHTML=crm.slice(0,6).map(x=>`<div class="traceCard"><strong>${esc(x.entity_type)} ${esc(x.entity_id)} · ${esc(x.status)}</strong><small>${esc(x.provider)} · ${esc(x.operation||'state recorded')} · attempts ${esc(x.attempts)}</small></div>`).join('')||'<div class="empty">No CRM sync records.</div>';el('auditTrace').innerHTML=audit.slice(0,6).map(x=>{const p=x.payload||{};const extra=[p.response_mode,p.next_action,p.provider?.model,p.tool_trace?.[0]?.tool].filter(Boolean).join(' · ');return `<div class="traceCard"><strong>${esc(x.event_type)}</strong><small>${esc(x.entity_type)} ${esc(x.entity_id)}${extra?' · '+esc(extra):''}</small></div>`}).join('')||'<div class="empty">No audit events.</div>'}
-function closeTrace(){el('drawer').classList.remove('open')}async function toggleProvider(service,value){try{await post('/api/admin/failure',{service_name:service,is_available:value});await refreshAll()}catch{alert('Demo controls are disabled. Set DEMO_CONTROLS_ENABLED=true in a local demo environment.')}}async function refreshAll(){await Promise.all([loadHealth(),loadSummary(),loadAttention(),loadLeads(),loadAppointments(),loadApprovals(),loadService()])}refreshAll();
-</script>
-<!-- Technical details / orchestration / CRM sync markers retained for regression coverage. -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">SO</div>
+      <div><span class="brand-name">Service Operations</span><span class="brand-context">Manager workspace</span></div>
+    </div>
+    <nav class="topbar-actions" aria-label="Workspace navigation">
+      <button class="system-status" id="systemStatus" type="button" aria-label="Open technical system status"><span class="status-dot" aria-hidden="true"></span><span>Checking systems</span></button>
+      <a class="nav-link customer-link" href="/customer">Customer journey</a>
+      <button class="nav-link" id="technicalDetailsButton" type="button">Technical details</button>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="overview" aria-labelledby="pageTitle">
+      <div><p class="eyebrow">Exception-led operations</p><h1 id="pageTitle">Operations overview</h1><p class="overview-copy" id="overviewCopy">Loading grounded service workload and operational exceptions…</p></div>
+      <div class="updated-at" id="updatedAt" aria-live="polite">Refreshing…</div>
+    </section>
+
+    <section class="metrics" id="metrics" aria-label="Service operations summary"><div class="loading-state">Loading operational metrics…</div></section>
+
+    <section class="primary-grid" aria-label="Priority operations">
+      <section class="panel attention-panel" aria-labelledby="attentionTitle">
+        <header class="panel-header"><div><h2 class="panel-title" id="attentionTitle">Needs attention</h2><p class="panel-description">Failures, safety risk and human decisions—ordered by operational priority.</p></div><span class="section-count" id="attentionCount" aria-label="Attention item count">–</span></header>
+        <div class="attention-list" id="attention" aria-live="polite"><div class="loading-state">Prioritizing current work…</div></div>
+      </section>
+      <aside class="panel" aria-labelledby="activityTitle">
+        <header class="panel-header"><div><h2 class="panel-title" id="activityTitle">Recent activity</h2><p class="panel-description">Stored customer and system events.</p></div></header>
+        <div class="activity-feed" id="activity"><div class="loading-state">Loading activity…</div></div>
+      </aside>
+    </section>
+
+    <section class="work-grid" aria-label="Service workload">
+      <section class="panel" aria-labelledby="appointmentsTitle">
+        <header class="panel-header"><div><h2 class="panel-title" id="appointmentsTitle">Recent service appointments</h2><p class="panel-description">Confirmed work after slot revalidation and the typed booking boundary.</p></div><span class="section-count" id="appointmentCount" aria-label="Recent appointment count">–</span></header>
+        <div class="table-wrap" id="appointments"><div class="loading-state">Loading confirmed service work…</div></div>
+      </section>
+      <section class="panel" aria-labelledby="queueTitle">
+        <header class="panel-header"><div><h2 class="panel-title" id="queueTitle">Open service work</h2><p class="panel-description">Cases and customer confirmation still in progress.</p></div></header>
+        <div class="queue-list" id="serviceQueue"><div class="loading-state">Loading service queue…</div></div>
+      </section>
+    </section>
+
+    <section class="secondary-grid" aria-label="Secondary manager context">
+      <section class="panel" id="customerContextPanel" aria-labelledby="contextTitle">
+        <header class="panel-header"><div><h2 class="panel-title" id="contextTitle">Customer context</h2><p class="panel-description">Conversation state remains available without dominating the workspace.</p></div></header>
+        <div class="context-selector" id="contextSelector" aria-label="Select recent customer"></div>
+        <div class="context-body" id="customerContext"><div class="loading-state">Loading customer context…</div></div>
+      </section>
+      <section class="panel" id="decisionsPanel" aria-labelledby="decisionsTitle">
+        <header class="panel-header"><div><h2 class="panel-title" id="decisionsTitle">Manager decisions</h2><p class="panel-description">Commercial exceptions remain explicitly human-controlled.</p></div><span class="section-count" id="decisionCount" aria-label="Pending decision count">–</span></header>
+        <div class="decision-list" id="decisions"><div class="loading-state">Loading pending decisions…</div></div>
+      </section>
+    </section>
+  </main>
+
+  <div class="drawer" id="technicalDrawer" aria-hidden="true">
+    <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+      <header class="drawer-header"><div><h2 class="drawer-title" id="drawerTitle">Technical details</h2><p class="panel-description">Readable proof of orchestration, authoritative state, CRM sync and recovery.</p></div><button class="button" id="closeDrawerButton" type="button">Close</button></header>
+      <div class="drawer-content">
+        <section class="trace-section"><h3 class="trace-heading">Request path</h3><div class="pipeline" id="pipeline"></div><a class="n8n-link" id="n8nLink" href="#" target="_blank" rel="noreferrer">Open n8n executions</a></section>
+        <section class="trace-section"><h3 class="trace-heading">CRM synchronization</h3><div class="trace-grid" id="crmTrace"></div></section>
+        <section class="trace-section"><h3 class="trace-heading">Recent audit events</h3><div class="trace-grid" id="auditTrace"></div></section>
+        <section class="trace-section"><h3 class="trace-heading">Local demo controls</h3><p class="panel-description">Explicit failure boundaries for demonstrating safe fallback and recovery.</p><div class="drawer-actions"><button class="button button-danger" type="button" data-provider="scheduler" data-available="false">Simulate scheduler timeout</button><button class="button button-primary" type="button" data-provider="scheduler" data-available="true">Restore scheduler</button><button class="button button-danger" type="button" data-provider="inventory" data-available="false">Simulate inventory outage</button><button class="button button-primary" type="button" data-provider="inventory" data-available="true">Restore inventory</button></div></section>
+      </div>
+    </aside>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const elements = Object.fromEntries([
+      "activity", "appointmentCount", "appointments", "attention", "attentionCount", "closeDrawerButton",
+      "contextSelector", "customerContext", "customerContextPanel", "decisionCount", "decisions", "decisionsPanel",
+      "metrics", "overviewCopy", "serviceQueue", "systemStatus", "technicalDetailsButton", "technicalDrawer", "toast", "updatedAt",
+    ].map((id) => [id, document.getElementById(id)]));
+
+    const dashboard = {
+      approvals: [], appointments: [], audit: [], briefing: { attention: [] }, health: {}, interactions: [], leads: [],
+      recoveries: [], selectedCaseId: null, selectedLeadId: null, serviceRequests: [], summary: {},
+    };
+    const attentionTypeLabels = {
+      APPROVAL: "Manager decision", BOOKING_RECOVERY: "Booking recovery", CLEAR: "Operations clear",
+      CRM_SYNC: "Integration issue", HUMAN_HANDOFF: "Human intervention", SAFETY_CASE: "Safety-sensitive case",
+      SYSTEM_STATE: "System availability",
+    };
+    const stageLabels = {
+      HUMAN_HANDOFF_REQUESTED: "Advisor requested", NEW: "New request", QUALIFIED: "Ready for follow-up",
+      SERVICE_BOOKED: "Service booked", SERVICE_ESCALATED: "Service escalated",
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;" })[character]);
+    }
+    function titleCase(value) {
+      return String(value ?? "").toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase());
+    }
+    function formatDateTime(value) {
+      if (!value) return "Not scheduled";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return new Intl.DateTimeFormat("en-IN", { day: "numeric", hour: "2-digit", hour12: true, minute: "2-digit", month: "short" }).format(date);
+    }
+    function formatCurrency(value) {
+      const amount = Number(value);
+      if (!Number.isFinite(amount)) return String(value ?? "Not provided");
+      return new Intl.NumberFormat("en-IN", { currency: "INR", maximumFractionDigits: 0, style: "currency" }).format(amount);
+    }
+    function relativeTime(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "recently";
+      const minutes = Math.max(0, Math.round((Date.now() - date.getTime()) / 60000));
+      if (minutes < 1) return "now";
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.round(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      return `${Math.round(hours / 24)}d ago`;
+    }
+    function stateClass(value) {
+      const normalized = String(value ?? "").toUpperCase();
+      if (["BOOKED", "COMPLETED", "SYNCED", "SUCCESS"].includes(normalized)) return "is-success";
+      if (["FAILED", "CRITICAL", "HIGH"].includes(normalized)) return "is-danger";
+      if (["PENDING", "OPEN", "NEEDS_ADVISOR", "AWAITING_CONFIRMATION"].includes(normalized)) return "is-warning";
+      return "";
+    }
+    async function getJson(path) {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`GET ${path} returned ${response.status}`);
+      return response.json();
+    }
+    async function postJson(path, body) {
+      const response = await fetch(path, { body: JSON.stringify(body), headers: { "Content-Type": "application/json" }, method: "POST" });
+      if (!response.ok) throw new Error(`POST ${path} returned ${response.status}`);
+      return response.json();
+    }
+    function showToast(message) {
+      elements.toast.textContent = message;
+      elements.toast.classList.add("is-visible");
+      window.clearTimeout(showToast.timeout);
+      showToast.timeout = window.setTimeout(() => elements.toast.classList.remove("is-visible"), 4200);
+    }
+
+    function renderHealth() {
+      const states = Object.values(dashboard.health.providers || {}).map((value) => String(value).toLowerCase());
+      const operationalIssue = Number(dashboard.summary.integration_issues || 0) > 0
+        || (dashboard.briefing.attention || []).some((item) => item.type === "SYSTEM_STATE");
+      const degraded = operationalIssue || states.some((value) => /failed|down|unavailable|degraded/.test(value));
+      elements.systemStatus.classList.toggle("is-healthy", !degraded);
+      elements.systemStatus.classList.toggle("is-degraded", degraded);
+      elements.systemStatus.querySelector("span:last-child").textContent = degraded ? "Systems need attention" : "Systems healthy";
+    }
+    function renderSummary() {
+      const summary = dashboard.summary;
+      const interventionLabel = summary.need_intervention === 1 ? "item requires" : "items require";
+      const healthLabel = elements.systemStatus.classList.contains("is-degraded") ? "systems degraded" : "systems healthy";
+      elements.overviewCopy.textContent = `${summary.bookings_today} confirmed bookings today · ${summary.need_intervention} ${interventionLabel} intervention · ${summary.sla_at_risk} SLA risk · ${healthLabel}`;
+      elements.updatedAt.textContent = `Updated ${new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" }).format(new Date())}`;
+      const metrics = [
+        ["Bookings today", summary.bookings_today, "bookings_today", ""],
+        ["Need intervention", summary.need_intervention, "need_intervention", summary.need_intervention ? "is-critical" : ""],
+        ["Booking completion rate", `${summary.automation_rate}%`, "automation_rate", ""],
+        ["SLA at risk", summary.sla_at_risk, "sla_at_risk", summary.sla_at_risk ? "is-risk" : ""],
+        ["Integration issues", summary.integration_issues, "integration_issues", summary.integration_issues ? "is-critical" : ""],
+      ];
+      elements.metrics.innerHTML = metrics.map(([label, value, key, className]) => `<div class="metric" title="${escapeHtml(summary.definitions?.[key] || label)}"><span class="metric-label">${escapeHtml(label)}</span><strong class="metric-value ${className}">${escapeHtml(value)}</strong></div>`).join("");
+    }
+    function actionButtons(item) {
+      const actions = [];
+      if (item.type === "BOOKING_RECOVERY") {
+        actions.push(`<button class="button button-primary" type="button" data-action="retry-recovery" data-entity-id="${escapeHtml(item.entity_id)}">Retry booking</button>`);
+        actions.push(`<button class="button" type="button" data-action="review-recovery" data-entity-id="${escapeHtml(item.entity_id)}">View context</button>`);
+      } else if (item.type === "SAFETY_CASE") {
+        actions.push(`<button class="button button-primary" type="button" data-action="review-case" data-entity-id="${escapeHtml(item.entity_id)}">Review case</button>`);
+      } else if (item.type === "HUMAN_HANDOFF") {
+        actions.push(`<button class="button button-primary" type="button" data-action="review-customer" data-entity-id="${escapeHtml(item.entity_id)}">View customer context</button>`);
+      } else if (item.type === "APPROVAL") {
+        actions.push(`<button class="button button-primary" type="button" data-action="review-approval" data-entity-id="${escapeHtml(item.entity_id)}">Review decision</button>`);
+      } else if (["CRM_SYNC", "SYSTEM_STATE"].includes(item.type)) {
+        actions.push('<button class="button" type="button" data-action="open-technical">View technical trace</button>');
+      }
+      return actions.length ? `<div class="attention-actions">${actions.join("")}</div>` : "";
+    }
+    function attentionDetail(item) {
+      if (item.type === "BOOKING_RECOVERY") {
+        const parts = String(item.detail || "").split(" · ");
+        return `${parts[0] || "Requested branch"} · ${formatDateTime(parts[1])} · Booking not confirmed · details preserved · duplicate protection active`;
+      }
+      if (item.type === "CRM_SYNC") return "CRM update is safe in PostgreSQL · retry pending";
+      return item.detail;
+    }
+    function renderAttention() {
+      const attention = dashboard.briefing.attention || [];
+      elements.attentionCount.textContent = attention.filter((item) => item.type !== "CLEAR").length;
+      if (!attention.length) { elements.attention.innerHTML = '<div class="empty-state">No operational work is available.</div>'; return; }
+      elements.attention.innerHTML = attention.map((item) => {
+        const severity = String(item.severity || "info").toLowerCase();
+        return `<article class="attention-item is-${escapeHtml(severity)} ${item.type === "CLEAR" ? "is-clear" : ""}"><div class="severity-rail" aria-hidden="true"></div><div class="attention-content"><div class="attention-meta"><span class="severity-label">${escapeHtml(item.type === "CLEAR" ? "Clear" : severity)}</span><span class="attention-type">${escapeHtml(attentionTypeLabels[item.type] || titleCase(item.type))}</span></div><h3 class="attention-title">${escapeHtml(item.title)}</h3><p class="attention-detail">${escapeHtml(attentionDetail(item))}</p>${actionButtons(item)}</div></article>`;
+      }).join("");
+    }
+    function serviceForCustomer(customerName) { return dashboard.serviceRequests.find((request) => request.customer_name === customerName); }
+    function renderAppointments() {
+      const appointments = dashboard.appointments.filter((appointment) => appointment.kind === "service").slice(0, 8);
+      elements.appointmentCount.textContent = appointments.length;
+      if (!appointments.length) { elements.appointments.innerHTML = '<div class="empty-state">No confirmed service appointments yet.</div>'; return; }
+      const rows = appointments.map((appointment) => {
+        const request = serviceForCustomer(appointment.customer_name);
+        return `<tr><td class="customer-cell"><strong>${escapeHtml(appointment.customer_name)}</strong><span>${escapeHtml(request?.vehicle_model || "Vehicle not recorded")}</span></td><td>${escapeHtml(request?.issue_summary || "Scheduled vehicle service")}</td><td>${escapeHtml(appointment.branch)}</td><td>${escapeHtml(formatDateTime(appointment.scheduled_for))}</td><td><span class="state ${stateClass(appointment.status)}">${escapeHtml(titleCase(appointment.status))}</span></td><td><span class="state ${stateClass(appointment.crm_status)}">${escapeHtml(titleCase(appointment.crm_status))}</span></td></tr>`;
+      }).join("");
+      elements.appointments.innerHTML = `<table class="operations-table"><thead><tr><th>Customer</th><th>Service</th><th>Branch</th><th>Scheduled</th><th>Status</th><th>CRM</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+    function renderServiceQueue() {
+      const openRequests = dashboard.serviceRequests.filter((request) => request.stage !== "BOOKED").slice(0, 6);
+      if (!openRequests.length) { elements.serviceQueue.innerHTML = '<div class="empty-state">No open service work.</div>'; return; }
+      elements.serviceQueue.innerHTML = openRequests.map((request) => `<article class="queue-item"><div class="queue-top"><div><h3 class="queue-title">${escapeHtml(request.customer_name)}</h3><p class="queue-detail">${escapeHtml(request.issue_summary)}<br>${escapeHtml(request.preferred_time_text || "Advisor follow-up required")}</p></div><span class="tag is-${escapeHtml(String(request.urgency).toLowerCase())}">${escapeHtml(request.urgency)}</span></div><button class="button button-quiet" type="button" data-action="review-case" data-entity-id="${escapeHtml(request.id)}">Review case</button></article>`).join("");
+    }
+    function customerNameForLead(leadId) { return dashboard.leads.find((lead) => Number(lead.id) === Number(leadId))?.customer_name || "Customer activity"; }
+    function auditEventLabel(event) {
+      const labels = { "appointment.created": "Appointment confirmed", "approval.decided": "Manager decision recorded", "approval.requested": "Approval requested", "crm.synced": "CRM synchronized", "service.availability_checked": "Availability checked", "service.safety_escalated": "Safety case escalated", "service.slot_selected": "Service slot selected" };
+      return labels[event.event_type] || titleCase(event.event_type.replaceAll(".", " "));
+    }
+    function renderActivity() {
+      const interactionEvents = dashboard.interactions.slice(0, 7).map((interaction) => ({ createdAt: interaction.created_at, detail: interaction.content, title: `${customerNameForLead(interaction.lead_id)} · ${titleCase(interaction.intent || "customer message")}` }));
+      const auditEvents = dashboard.audit.filter((event) => event.event_type !== "demo.seeded").slice(0, 5).map((event) => ({ createdAt: event.created_at, detail: `${titleCase(event.entity_type)} operational state updated`, title: auditEventLabel(event) }));
+      const events = [...interactionEvents, ...auditEvents].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt)).slice(0, 8);
+      if (!events.length) { elements.activity.innerHTML = '<div class="empty-state">No recent operational activity.</div>'; return; }
+      elements.activity.innerHTML = events.map((event) => `<div class="activity-item"><time class="activity-time" datetime="${escapeHtml(event.createdAt)}">${escapeHtml(relativeTime(event.createdAt))}</time><div><span class="activity-title">${escapeHtml(event.title)}</span><span class="activity-detail">${escapeHtml(event.detail)}</span></div></div>`).join("");
+    }
+    function renderContextSelector() {
+      elements.contextSelector.innerHTML = dashboard.leads.slice(0, 7).map((lead) => `<button class="context-tab ${Number(lead.id) === Number(dashboard.selectedLeadId) ? "is-active" : ""}" type="button" data-lead-id="${escapeHtml(lead.id)}">${escapeHtml(lead.customer_name)}</button>`).join("");
+    }
+    function renderCustomerContext() {
+      const lead = dashboard.leads.find((item) => Number(item.id) === Number(dashboard.selectedLeadId));
+      if (!lead) { elements.customerContext.innerHTML = '<div class="empty-state">No current customer context.</div>'; return; }
+      const serviceCase = dashboard.selectedCaseId ? dashboard.serviceRequests.find((request) => Number(request.id) === Number(dashboard.selectedCaseId)) : serviceForCustomer(lead.customer_name);
+      const detail = serviceCase?.issue_summary || lead.summary || "No conversation summary recorded.";
+      const contextStatus = serviceCase?.stage || lead.stage;
+      const tagClass = String(contextStatus || "").toLowerCase().replaceAll("_", "-");
+      elements.customerContext.innerHTML = `<div class="context-heading"><div><h3 class="context-name">${escapeHtml(lead.customer_name)}</h3><p class="context-subtitle">Updated ${escapeHtml(relativeTime(lead.updated_at))}${serviceCase?.vehicle_model ? ` · ${escapeHtml(serviceCase.vehicle_model)}` : ""}</p></div><span class="tag is-${escapeHtml(tagClass)}">${escapeHtml(stageLabels[contextStatus] || titleCase(contextStatus))}</span></div><div class="context-facts"><div class="context-fact"><span>Journey</span><strong>${escapeHtml(titleCase(lead.intent))}</strong></div><div class="context-fact"><span>Operational state</span><strong>${escapeHtml(stageLabels[contextStatus] || titleCase(contextStatus))}</strong></div><div class="context-fact"><span>CRM projection</span><strong>${escapeHtml(titleCase(lead.crm_sync_status || "Not synced"))}</strong></div></div><p class="context-summary">${escapeHtml(detail)}</p><div class="attention-actions"><button class="button" type="button" data-action="open-technical">View technical trace</button></div>`;
+      renderContextSelector();
+    }
+    function renderDecisions() {
+      const approvals = dashboard.approvals.slice(0, 5);
+      elements.decisionCount.textContent = approvals.length;
+      if (!approvals.length) { elements.decisions.innerHTML = '<div class="empty-state">No pending manager decisions.</div>'; return; }
+      elements.decisions.innerHTML = approvals.map((approval) => `<article class="decision-item" id="approval-${escapeHtml(approval.id)}"><div class="decision-top"><div><h3 class="decision-title">${escapeHtml(customerNameForLead(approval.lead_id))} · ${escapeHtml(titleCase(approval.action))}</h3><p class="decision-detail">Requested ${escapeHtml(formatCurrency(approval.requested_value))}. ${escapeHtml(approval.recommendation || "Human review required.")}</p></div><span class="tag is-pending">Pending</span></div><div class="decision-actions"><button class="button button-primary" type="button" data-action="decide-approval" data-decision="APPROVED" data-entity-id="${escapeHtml(approval.id)}">Approve</button><button class="button button-warning" type="button" data-action="decide-approval" data-decision="MODIFIED" data-entity-id="${escapeHtml(approval.id)}">Approve ₹20,000</button><button class="button button-danger" type="button" data-action="decide-approval" data-decision="REJECTED" data-entity-id="${escapeHtml(approval.id)}">Reject</button></div></article>`).join("");
+    }
+    function selectLead(leadId, scroll = false) {
+      dashboard.selectedLeadId = Number(leadId); dashboard.selectedCaseId = null; renderCustomerContext();
+      if (scroll) elements.customerContextPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    function reviewCase(caseId) {
+      const serviceCase = dashboard.serviceRequests.find((request) => Number(request.id) === Number(caseId));
+      if (!serviceCase) return;
+      const lead = dashboard.leads.find((item) => item.customer_name === serviceCase.customer_name);
+      if (lead) dashboard.selectedLeadId = Number(lead.id);
+      dashboard.selectedCaseId = Number(caseId); renderCustomerContext();
+      elements.customerContextPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    function reviewRecovery(recoveryId) {
+      const recovery = dashboard.recoveries.find((item) => Number(item.id) === Number(recoveryId));
+      if (recovery) selectLead(recovery.lead_id, true);
+    }
+    async function retryRecovery(recoveryId, button) {
+      const originalText = button.textContent; button.disabled = true; button.textContent = "Retrying…";
+      try {
+        const result = await postJson(`/api/ops/recoveries/${recoveryId}/retry`, {});
+        showToast(result.confirmed ? "Appointment confirmed. Idempotency protection prevented duplicate work." : "The booking remains unconfirmed and available for controlled recovery.");
+        await refreshDashboard();
+      } catch (error) { showToast("Retry could not complete. The booking remains unconfirmed and details are preserved."); }
+      finally { button.disabled = false; button.textContent = originalText; }
+    }
+    async function decideApproval(approvalId, decision, button) {
+      const body = { decision }; if (decision === "MODIFIED") body.approved_value_inr = 20000; button.disabled = true;
+      try { await postJson(`/api/approvals/${approvalId}/decision`, body); showToast(`Manager decision recorded: ${titleCase(decision)}.`); await refreshDashboard(); }
+      catch (error) { showToast("The decision could not be recorded. No approval state was changed."); }
+      finally { button.disabled = false; }
+    }
+    function focusApproval(approvalId) {
+      elements.decisionsPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById(`approval-${approvalId}`)?.querySelector("button")?.focus({ preventScroll: true });
+    }
+
+    async function openTechnicalDetails() {
+      elements.technicalDrawer.classList.add("is-open"); elements.technicalDrawer.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden"; elements.closeDrawerButton.focus();
+      const pipeline = document.getElementById("pipeline"); const crmTrace = document.getElementById("crmTrace"); const auditTrace = document.getElementById("auditTrace");
+      pipeline.innerHTML = '<div class="loading-state">Loading request path…</div>'; crmTrace.innerHTML = '<div class="loading-state">Loading CRM state…</div>'; auditTrace.innerHTML = '<div class="loading-state">Loading audit events…</div>';
+      try {
+        const [config, crm, audit] = await Promise.all([getJson("/api/demo/config"), getJson("/api/ops/crm-sync?limit=8"), getJson("/api/ops/audit?limit=8")]);
+        pipeline.innerHTML = (config.flow || []).map((step, index) => `<div class="pipeline-step"><span class="step-number">${index + 1}</span><strong>${escapeHtml(step)}</strong></div>`).join("");
+        const n8nLink = document.getElementById("n8nLink");
+        if (config.n8n_ui_base_url) { n8nLink.href = `${config.n8n_ui_base_url}/executions`; n8nLink.style.display = "inline-block"; } else { n8nLink.style.display = "none"; }
+        crmTrace.innerHTML = crm.slice(0, 6).map((item) => `<div class="trace-card"><strong>${escapeHtml(titleCase(item.entity_type))} · ${escapeHtml(titleCase(item.status))}</strong><span>${escapeHtml(item.provider)} · ${escapeHtml(item.operation || "state recorded")} · ${escapeHtml(item.attempts)} attempt(s)</span></div>`).join("") || '<div class="empty-state">No CRM synchronization records.</div>';
+        auditTrace.innerHTML = audit.slice(0, 6).map((event) => `<div class="trace-card"><strong>${escapeHtml(auditEventLabel(event))}</strong><span>${escapeHtml(titleCase(event.entity_type))} · ${escapeHtml(formatDateTime(event.created_at))}</span></div>`).join("") || '<div class="empty-state">No recent audit events.</div>';
+      } catch (error) { pipeline.innerHTML = '<div class="error-state">Technical details are temporarily unavailable.</div>'; crmTrace.innerHTML = ""; auditTrace.innerHTML = ""; }
+    }
+    function closeTechnicalDetails() {
+      elements.technicalDrawer.classList.remove("is-open"); elements.technicalDrawer.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = ""; elements.technicalDetailsButton.focus();
+    }
+    async function toggleProvider(serviceName, isAvailable, button) {
+      button.disabled = true;
+      try { await postJson("/api/admin/failure", { service_name: serviceName, is_available: isAvailable }); showToast(`${titleCase(serviceName)} ${isAvailable ? "restored" : "failure simulation enabled"}.`); await refreshDashboard(); }
+      catch (error) { showToast("Demo controls are disabled outside the protected local demo environment."); }
+      finally { button.disabled = false; }
+    }
+    function renderDashboard() { renderHealth(); renderSummary(); renderAttention(); renderAppointments(); renderServiceQueue(); renderActivity(); renderCustomerContext(); renderContextSelector(); renderDecisions(); }
+    function renderDashboardError() {
+      elements.overviewCopy.textContent = "Operational data could not be loaded. Existing business state has not been changed."; elements.updatedAt.textContent = "Refresh required";
+      for (const element of [elements.attention, elements.activity, elements.appointments, elements.serviceQueue, elements.customerContext, elements.decisions]) element.innerHTML = '<div class="error-state">Unable to load this operational view.</div>';
+    }
+    async function refreshDashboard() {
+      try {
+        const [health, summary, briefing, leads, appointments, serviceRequests, approvals, interactions, audit, recoveries] = await Promise.all([
+          getJson("/health"), getJson("/api/ops/summary"), getJson("/api/ops/briefing"), getJson("/api/ops/leads?limit=30"),
+          getJson("/api/ops/appointments?limit=12"), getJson("/api/ops/service-requests?limit=12"), getJson("/api/approvals?status=PENDING"),
+          getJson("/api/ops/interactions?limit=16"), getJson("/api/ops/audit?limit=12"), getJson("/api/ops/recoveries?limit=12"),
+        ]);
+        Object.assign(dashboard, { approvals, appointments, audit, briefing, health, interactions, leads, recoveries, serviceRequests, summary });
+        if (!dashboard.selectedLeadId && leads.length) { const handoff = leads.find((lead) => lead.stage === "HUMAN_HANDOFF_REQUESTED"); dashboard.selectedLeadId = Number(handoff?.id || leads[0].id); }
+        renderDashboard();
+      } catch (error) { console.error(error); renderDashboardError(); }
+    }
+
+    document.addEventListener("click", (event) => {
+      const actionTarget = event.target.closest("[data-action]");
+      if (actionTarget) {
+        const { action, entityId } = actionTarget.dataset;
+        if (action === "retry-recovery") retryRecovery(entityId, actionTarget);
+        if (action === "review-recovery") reviewRecovery(entityId);
+        if (action === "review-case") reviewCase(entityId);
+        if (action === "review-customer") selectLead(entityId, true);
+        if (action === "review-approval") focusApproval(entityId);
+        if (action === "open-technical") openTechnicalDetails();
+        if (action === "decide-approval") decideApproval(entityId, actionTarget.dataset.decision, actionTarget);
+      }
+      const contextTarget = event.target.closest("[data-lead-id]");
+      if (contextTarget) selectLead(contextTarget.dataset.leadId);
+      const providerTarget = event.target.closest("[data-provider]");
+      if (providerTarget) toggleProvider(providerTarget.dataset.provider, providerTarget.dataset.available === "true", providerTarget);
+    });
+    elements.technicalDetailsButton.addEventListener("click", openTechnicalDetails);
+    elements.systemStatus.addEventListener("click", openTechnicalDetails);
+    elements.closeDrawerButton.addEventListener("click", closeTechnicalDetails);
+    elements.technicalDrawer.addEventListener("click", (event) => { if (event.target === elements.technicalDrawer) closeTechnicalDetails(); });
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape" && elements.technicalDrawer.classList.contains("is-open")) closeTechnicalDetails(); });
+    refreshDashboard();
+  </script>
 </body>
 </html>
