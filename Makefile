@@ -7,7 +7,7 @@ seed:
 	docker compose exec api python scripts/seed_demo.py
 
 demo-reset: up
-	docker compose exec -T api python scripts/reset_demo.py --database --airtable --confirm RESET_DEMO
+	docker compose exec -T api python -m scripts.reset_demo --database --airtable --confirm RESET_DEMO
 
 down:
 	docker compose down
