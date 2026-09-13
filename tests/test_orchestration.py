@@ -33,8 +33,9 @@ def test_appointment_workflow_forwards_confirmed_contact_fields():
     assert '"name":"contact_email"' in workflow
     assert '"name":"service_request_id"' in workflow
     assert '"name":"slot_id"' in workflow
-    assert "$json.confirmed" in workflow
+    assert "$json.created" in workflow
     assert "Booking is not confirmed" in workflow
+    assert "Suppress Duplicate Notification" in workflow
     assert "Create Idempotent Appointment" in workflow
 
 
