@@ -865,6 +865,37 @@ def _service_booking_offer(phone: str, suffix: str, hour: str) -> dict:
     return {"lead_id": first["lead"]["id"], **selected["service_booking"]}
 
 
+def test_service_flow_carries_date_when_customer_changes_branch():
+    first = client.post(
+        "/api/channels/inbound",
+        json={
+            "event_id": "service-branch-start",
+            "channel": "demo-messaging",
+            "customer_name": "Branch Change Customer",
+            "customer_phone": "+919999901007",
+            "text": "My car needs its 40,000 km service. Can I come Saturday?",
+        },
+    ).json()
+
+    changed = client.post(
+        "/api/channels/inbound",
+        json={
+            "event_id": "service-branch-change",
+            "channel": "demo-messaging",
+            "customer_name": "Branch Change Customer",
+            "customer_phone": "+919999901007",
+            "text": "Actually, Noida works.",
+            "conversation_lead_id": first["lead"]["id"],
+        },
+    ).json()
+
+    booking = changed["service_booking"]
+    assert booking["status"] == "AWAITING_CONFIRMATION"
+    assert booking["slot"]["branch"] == "Noida"
+    assert booking["slot"]["label"].startswith("Saturday")
+    assert booking["slot"]["label"].endswith("14:30")
+
+
 def test_service_golden_path_revalidates_slot_persists_contact_and_suppresses_duplicate():
     offer = _service_booking_offer("+919999901001", "golden", "10:00")
     slot = offer["slot"]
