@@ -26,6 +26,17 @@ def test_manager_workspace_prioritizes_exceptions_over_customer_context():
     assert "lead score" not in markup.lower()
 
 
+def test_customer_onboarding_collects_name_then_vehicle_before_actions():
+    markup = open("app/static/customer.html", encoding="utf-8").read()
+    assert "Welcome to Service Concierge" in markup
+    assert "May I have your name?" in markup
+    assert "Which vehicle model are we helping you with today?" in markup
+    assert "onboarding='name'" in markup
+    assert "customerVehicle" in markup
+    assert "vehicle_model:customerVehicle" in markup
+    assert '<div class="quick" id="quick">' in markup
+
+
 def test_customer_service_confirmation_suppresses_double_submit():
     markup = open("app/static/customer.html", encoding="utf-8").read()
     assert "card.dataset.submitting==='true'" in markup
