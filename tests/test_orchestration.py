@@ -26,6 +26,13 @@ def test_manager_workspace_prioritizes_exceptions_over_customer_context():
     assert "lead score" not in markup.lower()
 
 
+def test_customer_service_confirmation_suppresses_double_submit():
+    markup = open("app/static/customer.html", encoding="utf-8").read()
+    assert "card.dataset.submitting==='true'" in markup
+    assert "confirmButton.disabled=true" in markup
+    assert "Confirming…" in markup
+
+
 def test_appointment_workflow_forwards_confirmed_contact_fields():
     workflow = open("n8n/appointment-confirmation.json", encoding="utf-8").read()
     assert '"name":"contact_name"' in workflow
