@@ -7,7 +7,11 @@ def test_demo_console_keeps_orchestration_proof_behind_technical_details():
     assert "/api/demo/config" in markup
     assert "Technical details" in markup
     assert "openTrace" in markup
-    assert "orchestrationTrace" in markup
+    assert 'id="pipeline"' in markup
+    assert 'id="crmTrace"' in markup
+    assert 'id="auditTrace"' in markup
+    assert 'id="n8nLink"' in markup
+    assert "Open n8n executions" in markup
     assert "/api/ops/crm-sync" in markup
     assert "/api/ops/audit" in markup
 
