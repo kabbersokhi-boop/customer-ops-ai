@@ -6,9 +6,43 @@ from app.services.leads import get_or_create_customer
 
 
 def infer_urgency(message: str) -> str:
-    low = message.lower()
-    critical = ["brake failure", "cannot stop", "smoke", "fire", "engine overheating", "won't start", "wont start"]
-    high = ["brake", "warning light", "breakdown", "stranded", "unsafe", "noise when braking"]
+    low = " ".join(message.lower().split())
+    critical = [
+        "brake failure",
+        "cannot stop",
+        "can't stop",
+        "cant stop",
+        "smoke",
+        "fire",
+        "engine overheating",
+        "won't start",
+        "wont start",
+        "will not start",
+    ]
+    high = [
+        "brake",
+        "warning light",
+        "breakdown",
+        "broke down",
+        "broken down",
+        "stranded",
+        "unsafe",
+        "noise when braking",
+        "not drivable",
+        "undrivable",
+        "cannot drive",
+        "can't drive",
+        "cant drive",
+        "stuck on the road",
+        "stuck roadside",
+        "stalled",
+        "engine stalled",
+        "flat tyre",
+        "flat tire",
+        "puncture",
+        "dead battery",
+        "battery dead",
+    ]
     if any(term in low for term in critical):
         return "CRITICAL"
     if any(term in low for term in high):
