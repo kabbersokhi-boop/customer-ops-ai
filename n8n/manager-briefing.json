@@ -1,5 +1,5 @@
 {
-  "name": "Customer Ops AI - Manager Briefing",
+  "name": "Customer Ops AI - Manager Operations Briefing",
   "id": "coa-manager-briefing",
   "nodes": [
     {"parameters":{"rule":{"interval":[{"triggerAtHour":9}]}},"id":"1","name":"Daily 9 AM","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[-360,-100]},

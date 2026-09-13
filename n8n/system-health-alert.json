@@ -1,5 +1,5 @@
 {
-  "name":"Customer Ops AI - System Health Alert",
+  "name":"Customer Ops AI - Operations Health Monitor",
   "id":"coa-system-health",
   "nodes":[
     {"parameters":{"rule":{"interval":[{"field":"minutes","minutesInterval":5}]}},"id":"health-1","name":"Every 5 Minutes","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[-400,0]},

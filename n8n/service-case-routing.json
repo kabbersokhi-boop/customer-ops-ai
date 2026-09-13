@@ -1,5 +1,5 @@
 {
-  "name":"Customer Ops AI - Service Case Routing",
+  "name":"Customer Ops AI - Service Escalation & Routing",
   "id":"coa-service-routing",
   "nodes":[
     {"parameters":{"httpMethod":"POST","path":"customer-ops/service","responseMode":"responseNode","options":{}},"id":"svc-1","name":"Service Channel Event","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[-470,0],"webhookId":"a3b89ca7-770b-4250-b87f-574892304652"},

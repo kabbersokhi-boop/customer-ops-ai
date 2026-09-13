@@ -1,5 +1,5 @@
 {
-  "name":"Customer Ops AI - Provider Error Handler",
+  "name":"Customer Ops AI - Integration Failure Recovery",
   "id":"coa-provider-errors",
   "nodes":[
     {"parameters":{},"id":"err-1","name":"Workflow Error Trigger","type":"n8n-nodes-base.errorTrigger","typeVersion":1,"position":[-420,0]},

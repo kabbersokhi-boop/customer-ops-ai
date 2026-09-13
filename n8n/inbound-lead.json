@@ -1,5 +1,5 @@
 {
-  "name": "Customer Ops AI - Inbound Channel",
+  "name": "Customer Ops AI - Customer Enquiry Intake",
   "id": "coa-inbound-channel",
   "nodes": [
     {
@@ -59,9 +59,9 @@
       "position": [-120, 0]
     },
     {
-      "parameters": {"conditions": {"options": {"caseSensitive": true, "typeValidation": "strict"}, "conditions": [{"leftValue": "={{ $json.lead.score }}", "rightValue": 80, "operator": {"type": "number", "operation": "gte"}}], "combinator": "and"}},
+      "parameters": {"conditions": {"options": {"caseSensitive": true, "typeValidation": "strict"}, "conditions": [{"leftValue": "={{ $json.lead.intent === 'service' || $json.lead.score >= 80 }}", "rightValue": true, "operator": {"type": "boolean", "operation": "true", "singleValue": true}}], "combinator": "and"}},
       "id": "4",
-      "name": "High Intent?",
+      "name": "Operational Priority?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [120, 0]
@@ -70,7 +70,7 @@
       "parameters": {
         "assignments": {"assignments": [
           {"id": "priority", "name": "routing_priority", "value": "HIGH", "type": "string"},
-          {"id": "action", "name": "workflow_next_action", "value": "Sales follow-up / appointment", "type": "string"},
+          {"id": "action", "name": "workflow_next_action", "value": "Service booking, safety routing, or priority follow-up", "type": "string"},
           {"id": "orchestration", "name": "orchestration", "value": "={{ { mode: 'n8n', workflow_id: $workflow.id, workflow_name: $workflow.name, execution_id: $execution.id } }}", "type": "object"}
         ]},
         "includeOtherFields": true,
@@ -109,8 +109,8 @@
   "connections": {
     "Inbound Channel Webhook": {"main": [[{"node": "Normalize Channel Event", "type": "main", "index": 0}]]},
     "Normalize Channel Event": {"main": [[{"node": "AI Operations Control Layer", "type": "main", "index": 0}]]},
-    "AI Operations Control Layer": {"main": [[{"node": "High Intent?", "type": "main", "index": 0}]]},
-    "High Intent?": {"main": [[{"node": "Mark Priority Route", "type": "main", "index": 0}], [{"node": "Standard Route", "type": "main", "index": 0}]]},
+    "AI Operations Control Layer": {"main": [[{"node": "Operational Priority?", "type": "main", "index": 0}]]},
+    "Operational Priority?": {"main": [[{"node": "Mark Priority Route", "type": "main", "index": 0}], [{"node": "Standard Route", "type": "main", "index": 0}]]},
     "Mark Priority Route": {"main": [[{"node": "Return Channel Response", "type": "main", "index": 0}]]},
     "Standard Route": {"main": [[{"node": "Return Channel Response", "type": "main", "index": 0}]]}
   },

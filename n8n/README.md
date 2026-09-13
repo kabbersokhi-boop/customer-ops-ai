@@ -4,14 +4,14 @@ These exports make orchestration visible without hiding policy inside Code or Fu
 
 | Export | Business purpose |
 |---|---|
-| inbound-lead.json | Normalize channel payload, invoke the control layer, route high intent |
-| appointment-confirmation.json | Create an idempotent booking and suppress duplicate notifications |
-| service-case-routing.json | Create a service case and route safety escalation |
+| inbound-lead.json | Customer Enquiry Intake: normalize channel payload, invoke the control layer, and prioritize service/safety work |
+| appointment-confirmation.json | Service Booking & Confirmation: distinguish confirmed, replayed, and recovery states |
+| service-case-routing.json | Service Escalation & Routing: create a service case and route safety escalation |
 | approval-decision.json | Apply a typed manager decision and expose the delivery boundary |
 | lost-lead-recovery.json | Find stale high-intent leads and queue recovery |
-| provider-error-handler.json | Classify workflow errors and preserve safe retry rules |
-| manager-briefing.json | Pull a stored-state briefing and prepare manager delivery |
-| system-health-alert.json | Detect safe-fallback state and prepare an operations alert |
+| provider-error-handler.json | Integration Failure Recovery: classify errors and preserve safe retry rules |
+| manager-briefing.json | Manager Operations Briefing: pull grounded metrics and prepare delivery |
+| system-health-alert.json | Operations Health Monitor: detect safe fallback and prepare an alert |
 
 ## Connectivity
 
@@ -33,7 +33,7 @@ Use Workflows → Import from File, or the CLI:
 n8n import:workflow --input=/path/to/workflow.json
 ~~~
 
-All eight files have stable workflow IDs and were imported successfully using n8n 2.38.7. The Manager Briefing workflow was also executed end to end against the Compose API. Workflows remain inactive after import so provider boundaries cannot send unintended messages.
+All eight files retain stable workflow IDs. Only Customer Enquiry Intake and Service Booking & Confirmation should be published for the browser demo; provider-bound schedules and callbacks remain inactive until a real destination is configured.
 
 For the browser demo, publish only the inbound and appointment workflows after inspection:
 
@@ -55,7 +55,7 @@ N8N_APPOINTMENT_WEBHOOK_URL=http://localhost:5678/webhook/customer-ops/appointme
 N8N_UI_BASE_URL=http://localhost:5678
 ~~~
 
-Both `/customer` and the Operations Console discover this public routing configuration from `/api/demo/config`. A customer message visibly follows Browser → n8n → FastAPI → NVIDIA NIM/PostgreSQL/Airtable → n8n → Browser. The normalized event preserves the typed conversation lead ID, the response includes n8n workflow and execution IDs, and both demo surfaces can link to that execution. NVIDIA NIM and all policy remain behind FastAPI.
+Both `/customer` and the manager dashboard discover this public routing configuration from `/api/demo/config`. A customer message visibly follows Browser → n8n → FastAPI → NVIDIA NIM/PostgreSQL/Airtable → n8n → Browser. The normalized event preserves typed conversation continuity, and the response includes n8n workflow and execution IDs. NVIDIA NIM and all policy remain behind FastAPI.
 
 Webhook URLs must not contain credentials, query tokens, fragments, or URL user-info; unsafe values are rejected and that command route falls back to FastAPI. Use `ORCHESTRATION_MODE=direct` for tests and offline local work.
 
@@ -65,4 +65,4 @@ Webhook URLs must not contain credentials, query tokens, fragments, or URL user-
 2. Select the optional admin-header credential if admin protection is enabled.
 3. Replace provider-boundary Set nodes with approved Slack, email, WhatsApp Business, or service-desk credentials.
 4. Test each workflow manually before publishing it.
-5. Attach Provider Error Handler as the error workflow for the other workflows.
+5. Attach Integration Failure Recovery as the error workflow for production-bound workflows.
